@@ -10,8 +10,14 @@ output: pdf_document
 ---
 
 # Motorcycle deaths
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 library(Hmisc)
+library(Pmisc)
+# install.packages("mcgv")
+library(mgcv)
+library(kableExtra)
+library(janitor)
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -38,6 +44,45 @@ plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
 matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
 ```
 
-1. Equations for a generalized additive model
+```{r}
+x
+```
 
-2. R code to fit the model
+1.  Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
+
+    Do we have to check for overdispersion or is this already telling us it is poission?
+
+    Number of motorcylcle deaths every month from 1980 to 2025
+
+    An appropriate generalized additive model
+
+    We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable.
+
+    Covariate Xi is month
+
+    Beta is the fixed effect of month
+  $$
+    Y_i  \sim Pois(D_i \lambda_i) \\
+    G(\lambda_i) = X_i \beta + U(t_i) \\
+    U(.) \sim IWP_2(\sigma)
+  $$
+
+2. Show R code to fit the model using the `mcgv` package
+3. 
+
+
+# Heat
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+x[100, ]
+```
+
+```{r. echo=FALSE, message=FALSE, warning=FALSE}
+x$dateInt = as.integer(x$Date)
+x$yearFac = factor(format(x$Date, "%Y"))
+# xSub = x[x$summer & !is.na(x$Max.Temp), ]
+# res1 = gam(update.formula(Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")),
+# +   k = 100) + s(yearFac, bs = "re"), Pmisc::seasonalFormula(period = 365.25,
+# +   harmonics = 1:2, var = "dateInt")), data = xSub, method = "ML",
+# +   optimizer = "efs")
+```
