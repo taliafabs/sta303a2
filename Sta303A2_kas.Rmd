@@ -1,0 +1,55 @@
+```{r}
+##Uploading
+theUrl = "http://pbrown.ca/teaching/appliedstats/data/motorcycle.rds"
+theFile = basename(theUrl)
+if (!file.exists(theFile)) download.file(theUrl, theFile)
+x = readRDS(theFile)
+
+#install.packages('mgcv')
+#library(mgcv)
+#install.packages("htmltools")
+
+#remove.packages("htmltools")
+#install.packages("htmltools")
+
+#install.packages("remotes")
+#remotes::install_version("htmltools", version = "0.5.7")
+
+View(x)
+
+View(newdata)
+
+x$dateInt = as.integer(x$date)
+x$logMonthDays = log(Hmisc::monthDays(x$date))
+x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
++ 1:12, 1), "%b"))
+x$dateInt = as.integer(x$date)
+
+res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, 
+           family = poisson(link = "log"))
+
+newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
+newdata$dateInt = as.integer(newdata$date)
+newdata$logMonthDays = log(30)  # Approximation
+newdata$killsbymonth = 
+newdata$month = factor("Mar", levels = levels(x$month))
+
+pred1 = predict(res, newdata, type = "link")
+
+newdata$month = factor(format(newdata$date, "%b"), levels = levels(x$month))
+pred2 = predict(res, newdata, type = "link")
+
+plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
+matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1, col = 1:2)
+```
+
+```{r}
+# 1)
+## Use a negative binomial to account for overdispersion in the data, due to seasonality, deaths may be more common in one month
+## over the other, making fitting a poission not as good of an assumption since poisson assumes all variances are equal. Additionally the negative binomial models count data, therefore it is always non-negative, the death counts will always be non-negative.
+
+#2)
+
+fittedmodel = gam(-- ~ months offset(logMonthDays + s(daysint), data = x))
+
+```
