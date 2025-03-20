@@ -15,10 +15,6 @@ x = readRDS(theFile)
 #install.packages("remotes")
 #remotes::install_version("htmltools", version = "0.5.7")
 
-View(x)
-
-View(newdata)
-
 x$dateInt = as.integer(x$date)
 x$logMonthDays = log(Hmisc::monthDays(x$date))
 x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
@@ -31,7 +27,6 @@ res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x,
 newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
 newdata$dateInt = as.integer(newdata$date)
 newdata$logMonthDays = log(30)  # Approximation
-newdata$killsbymonth = 
 newdata$month = factor("Mar", levels = levels(x$month))
 
 pred1 = predict(res, newdata, type = "link")
@@ -41,6 +36,9 @@ pred2 = predict(res, newdata, type = "link")
 
 plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
 matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1, col = 1:2)
+
+View(newdata)
+View(x)
 ```
 
 ```{r}
@@ -49,7 +47,33 @@ matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1, col = 1:2)
 ## over the other, making fitting a poission not as good of an assumption since poisson assumes all variances are equal. Additionally the negative binomial models count data, therefore it is always non-negative, the death counts will always be non-negative.
 
 #2)
+library('mgcv')
+fittedmodel = gam(
+  killed ~ month + s(dateInt) + offset(logMonthDays), 
+  family = nb,  
+  method = 'ML', 
+  data = x
+)
 
-fittedmodel = gam(-- ~ months offset(logMonthDays + s(daysint), data = x))
+summary(fittedmodel)
 
+names(x)
+##3. 
+# Seasonal Component
+matplot(x$date, 
+        x$dateInt / 10000 + cbind(
+            0.7 * cos(2 * pi * x$dateInt / 365.25), 
+            cos(2 * pi * x$dateInt / 365.25 + 1.5)
+        ), 
+        type = 'l', lty = 1, 
+        xlab = '', ylab = '')
+
+##Killl points
+matplot(x$date, 
+        x$killed, 
+        type = 'p',  # 'p' for points
+        col = 'blue', 
+        pch = 16,    # Use filled circles for points
+        xlab = 'Date', 
+        ylab = 'Kills')
 ```
