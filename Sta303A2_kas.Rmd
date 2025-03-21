@@ -1,3 +1,6 @@
+---
+output: pdf_document
+---
 ```{r}
 
 ##For Question 1:
@@ -18,49 +21,54 @@ x = readRDS(theFile)
 #install.packages("remotes")
 #remotes::install_version("htmltools", version = "0.5.7")
 
-x$dateInt = as.integer(x$date)
-x$logMonthDays = log(Hmisc::monthDays(x$date))
-x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
-+ 1:12, 1), "%b"))
-x$dateInt = as.integer(x$date)
 
-res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, 
-           family = poisson(link = "log"))
+# Convert date to integer representation
+x$dateInt <- as.integer(x$date)
 
-newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
-newdata$dateInt = as.integer(newdata$date)
-newdata$logMonthDays = log(30)  # Approximation
-newdata$month = factor("Mar", levels = levels(x$month))
+# Compute log of the number of days in each month
+x$logMonthDays <- log(Hmisc::monthDays(x$date))
 
-pred1 = predict(res, newdata, type = "link")
+# Extract month as a factor with proper ordering
+x$month <- factor(
+  format(x$date, "%b"), 
+  levels = format(ISOdate(2000, 1:12, 1), "%b")
+)
 
-newdata$month = factor(format(newdata$date, "%b"), levels = levels(x$month))
-pred2 = predict(res, newdata, type = "link")
+# Fit a Poisson regression model with a log link
+res <- glm(
+  killed ~ offset(logMonthDays) + dateInt + month, 
+  data = x, 
+  family = poisson(link = "log")
+)
 
-plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
-matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1, col = 1:2)
-```
-```{r}
+# Create a new dataset for prediction
+newdata <- data.frame(
+  date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month")
+)
+
+# Transform new data similar to original dataset
+newdata$dateInt <- as.integer(newdata$date)
+newdata$logMonthDays <- log(30)
+
+# First prediction: using March as the month
+newdata$month <- "Mar"
+pred1 <- predict(res, newdata)
+
+# Second prediction: using the actual month of each date
+newdata$month <- format(newdata$date, "%b")
+pred2 <- predict(res, newdata)
+
+# Plot original data
 plot(
-  x$date, x$killed,
-  col = 'red', log = 'y',
-  xlab = '', ylab = 'killed'
+  x$date, x$killed, 
+  cex = 0.2, log = "y", 
+  xlab = "", ylab = ""
 )
 
+# Add predicted lines to the plot
 matlines(
-  x$date,
-  exp(do.call(cbind, predict(res, se.fit = TRUE)) %*% Pmisc::ciMat()),
-  lty = c(1, 2, 2), col = 'black'
-)
-
-newX <- x
-newX$month <- 'Apr'
-newX$logMonthDays <- log(30)
-
-matlines(
-  x$date,
-  exp(do.call(cbind, predict(res, newX, se.fit = TRUE)) %*% Pmisc::ciMat()),
-  lty = c(1, 2, 2), col = 'green', lwd = c(3, 1, 1)
+  newdata$date, exp(cbind(pred1, pred2)), 
+  lty = 1
 )
 
 ```
@@ -82,28 +90,24 @@ fittedmodel = gam(
 summary(fittedmodel)
 
 names(x)
-##3. 
-# Seasonal Component
-matplot(x$date, 
-        x$dateInt / 10000 + cbind(
-            0.7 * cos(2 * pi * x$dateInt / 365.25), 
-            cos(2 * pi * x$dateInt / 365.25 + 1.5)
-        ), 
-        type = 'l', lty = 1, 
-        xlab = '', ylab = '')
+##3 
+newX2 = x
+newX2$month = format(newX2$date, '%b')
 
-##Killl points
-matplot(x$date, 
-        x$killed, 
-        type = 'p',  # 'p' for points
-        col = 'blue', 
-        pch = 16,    # Use filled circles for points
-        xlab = 'Date', 
-        ylab = 'Kills')
-```
+pred2 = do.call(cbind, predict(
+  fittedmodel, newX2, se.fit = TRUE
+)) %*% Pmisc::ciMat()
 
-```{r}
-## Question 2
+matplot(
+  newX2$date,
+  exp(cbind(pred1, pred2)),
+  lty = rep(c(1, 2, 2), 2),
+  col = rep(c('blue', 'red'), each = 3),
+  log = 'y', type = 'l', xlab = '',
+  ylab = 'deaths', xaxs = 'i'
+)
+
+points(x$date, x$killed, cex = 0.2)
 
 
 ```
