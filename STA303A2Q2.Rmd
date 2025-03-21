@@ -1,0 +1,49 @@
+Question 2:
+
+```{r}
+heatUrl = "http://pbrown.ca/teaching/appliedstats/data/sableIsland.rds"
+dir.create("cache", showWarnings = FALSE)
+heatFile = file.path("cache", basename(heatUrl))
+
+if (!file.exists(heatFile)) 
+  download.file(heatUrl, heatFile)
+
+x = readRDS(heatFile)
+names(x) = gsub("[.]+C[.]", "", names(x))
+x$Date = as.Date(x$Date)
+x$month = as.numeric(format(x$Date, "%m"))
+x$summer = x$month %in% 5:10
+
+View(x)
+
+x$dateInt = as.integer(x$Date)
+x$yearFac = factor(format(x$Date, "%Y"))
+
+xSub = x[x$summer & !is.na(x$Max.Temp), ]
+
+library("mgcv")
+
+# Directly define the formulas and pass them to the gam() function
+formula1 <- Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+  s(yearFac, bs = "re") + 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+
+formula2 <- Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 4) + 
+  s(yearFac, bs = "re") + 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+
+formula3 <- Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+
+# Fit the models using the defined formulas
+res1 = gam(formula1, data = xSub, method = "ML", optimizer = "efs")
+res2 = gam(formula2, data = xSub, method = "ML", optimizer = "efs")
+res3 = gam(formula3, data = xSub, method = "ML", optimizer = "efs")
+
+# Output the formula of res1
+res1$formula
+
+
+
+
+```

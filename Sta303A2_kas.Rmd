@@ -1,4 +1,7 @@
 ```{r}
+
+##For Question 1:
+
 ##Uploading
 theUrl = "http://pbrown.ca/teaching/appliedstats/data/motorcycle.rds"
 theFile = basename(theUrl)
@@ -36,9 +39,30 @@ pred2 = predict(res, newdata, type = "link")
 
 plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
 matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1, col = 1:2)
+```
+```{r}
+plot(
+  x$date, x$killed,
+  col = 'red', log = 'y',
+  xlab = '', ylab = 'killed'
+)
 
-View(newdata)
-View(x)
+matlines(
+  x$date,
+  exp(do.call(cbind, predict(res, se.fit = TRUE)) %*% Pmisc::ciMat()),
+  lty = c(1, 2, 2), col = 'black'
+)
+
+newX <- x
+newX$month <- 'Apr'
+newX$logMonthDays <- log(30)
+
+matlines(
+  x$date,
+  exp(do.call(cbind, predict(res, newX, se.fit = TRUE)) %*% Pmisc::ciMat()),
+  lty = c(1, 2, 2), col = 'green', lwd = c(3, 1, 1)
+)
+
 ```
 
 ```{r}
@@ -76,4 +100,10 @@ matplot(x$date,
         pch = 16,    # Use filled circles for points
         xlab = 'Date', 
         ylab = 'Kills')
+```
+
+```{r}
+## Question 2
+
+
 ```
