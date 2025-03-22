@@ -1,0 +1,113 @@
+---
+title: "STA303 Assignment 2"
+author: 
+- Talia Fabregas
+- Kasandra Tworzynaski
+date: \today
+date-format: long
+number-sections: true
+output: pdf_document
+---
+
+# Motorcycle deaths
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+library(Hmisc)
+library(Pmisc)
+# install.packages("mcgv")
+library(mgcv)
+library(kableExtra)
+library(janitor)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# retrieving the data
+theUrl = "http://pbrown.ca/teaching/appliedstats/data/motorcycle.rds"
+theFile = basename(theUrl)
+if (!file.exists(theFile)) download.file(theUrl, theFile)
+x = readRDS(theFile)
+
+# preparing the data
+x$dateInt = as.integer(x$date)
+x$logMonthDays = log(Hmisc::monthDays(x$date))
+x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
++   1:12, 1), "%b"))
+res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, family = poisson(link = "log"))
+newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
+newdata$dateInt = as.integer(newdata$date)
+newdata$logMonthDays = log(30)
+newdata$month = "Mar"
+pred1 = predict(res, newdata)
+newdata$month = format(newdata$date, "%b")
+pred2 = predict(res, newdata)
+plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
+matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+head(x)
+```
+
+1.  Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
+
+    Do we have to check for overdispersion or is this already telling us it is poission?
+
+    Number of motorcylcle deaths every month from 1980 to 2025
+
+    An appropriate generalized additive model
+
+    We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable.
+
+    Covariate Xi is month
+
+    Beta is the fixed effect of month Motorcycle deaths $$
+    Y_i|U  \sim Pois(D_i \lambda_i) \\
+    G(\lambda_i) = X_i \beta + U(t_i) \\
+    U(.) \sim IWP_2(\sigma)
+      $$ Motorcycle deaths (analogous to w8 video slide) $$
+      Y_i | U \sim \text{NegBinom}(D_i, \lambda_i; \tau) \\
+      g(\lambda_i) = X_i \beta + U(t_i) \\
+      U(.) \sim \text{IWP}_2(\sigma)
+      $$
+
+    -   $E(Y_i|U) = \lambda_i$
+
+    -   $sd(Y_i|U)/E(Y_i|U)$ = $\tau$
+
+    -   $D_i$ = number of days in month $i$
+
+    -   $\lambda_i$ = number of motorcycle deaths per day in month $i$
+
+    -   $X_i$ = seasonality, where month is the factor
+
+2.  Show R code to fit the model using the `mcgv` package
+
+```{r, message=FALSE, warning=FALSE}
+motorcycleGAM <- gam(
+  killed ~ offset(logMonthDays) + s(dateInt) + month, 
+  data=x, 
+  family=nb(link="log"), 
+  method="ML"
+  )
+
+# log offset on D_i
+# smooth term on the data to capture long-term trend in num motorcycle deaths
+# month, categorical variable, seasonal effects
+```
+
+3.  
+
+# Heat
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+x[100, ]
+
+```
+
+`{r. echo=FALSE, message=FALSE, warning=FALSE} x$dateInt = as.integer(x$Date) x$yearFac = factor(format(x$Date, "%Y")) # xSub = x[x$summer & !is.na(x$Max.Temp), ] # res1 = gam(update.formula(Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), # +   k = 100) + s(yearFac, bs = "re"), Pmisc::seasonalFormula(period = 365.25, # +   harmonics = 1:2, var = "dateInt")), data = xSub, method = "ML", # +   optimizer = "efs")`
+
+1.  
+
+2.  
+
+3.  
