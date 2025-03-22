@@ -6,6 +6,7 @@ if (!requireNamespace("Pmisc", quietly = TRUE)) {
 library(Pmisc)
 ```
 
+Importing the Data:
 ```{r}
 heatUrl = "http://pbrown.ca/teaching/appliedstats/data/sableIsland.rds"
 dir.create("cache", showWarnings = FALSE)
@@ -19,32 +20,106 @@ names(x) = gsub("[.]+C[.]", "", names(x))
 x$Date = as.Date(x$Date)
 x$month = as.numeric(format(x$Date, "%m"))
 x$summer = x$month %in% 5:10
+```
 
-
+Code for 3 GAM:
+```{r}
+x[100, ]
 x$dateInt = as.integer(x$Date)
 x$yearFac = factor(format(x$Date, "%Y"))
 
 xSub = x[x$summer & !is.na(x$Max.Temp), ]
 
+View(xSub)
+View(x)
+
+
 library("mgcv")
 
-# Directly define the formulas and pass them to the gam() function
-formula1 <- Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
-  s(yearFac, bs = "re") + 
+# Model 1 (res1)
+res1 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+  s(yearFac, bs = "re"), 
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
 
-formula2 <- Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 4) + 
-  s(yearFac, bs = "re") + 
+# Model 2 (res2)
+res2 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 4) + 
+  s(yearFac, bs = "re"), 
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
 
-formula3 <- Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+# Model 3 (res3)
+res3 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100), 
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
-
-# Fit the models using the defined formulas
-res1 = gam(formula1, data = xSub, method = "ML", optimizer = "efs")
-res2 = gam(formula2, data = xSub, method = "ML", optimizer = "efs")
-res3 = gam(formula3, data = xSub, method = "ML", optimizer = "efs")
+), data = xSub, method = "ML", optimizer = "efs")
 
 # Output the formula of res1
 res1$formula
+res2$formula
+res3$formula
+
+```
+##Q1
+##Discussion: 
+res 1 and res 3 have a k value equal to 100, this is a component of the smooth term. Due to the k value being greater
+in these 2 models, compared to res 2 having a k value of 4 in the smooth term, res1 and res3 will be able to capture more
+of the data, allowing more flexibility in the smooth function. For res 2 with a k value of 4 the smooth term will have a more generalized shape, not accounting for detailed variability in the data.
+
+Another key difference is that Res3 does not include yearFac as a random effect, whereas Res1 and Res2 both treat yearFac as a random effect. This means that in Res3, the model assumes that the intercept for Max.Temp is the same for all years. However, this assumption is likely not accurate, as temperatures can vary significantly from year to year, especially over long periods. By including yearFac as a random effect, Res1 and Res2 allow for different intercepts for each year, better capturing year-to-year variations in the data.
+
+1.)
+
+$$
+g(\mathbb{E}[Y]) = \beta_0 + f_1(\text{yearFac}) + f_2(\text{dateInt}) + f_3(\text{yearFac} * \text{dateInt}) + \epsilon
+$$
+
+##Q2
+
+```{r}
+
+```
+
+##Q3
+```{r}
+
+```
+
+##Q4
+```{r}
+xnew = x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
+View(xnew)
+
+##Fitting the new model
+res_new = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1930/7/1")), k = 100) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xnew, method = "ML", optimizer = "efs")
+```
+
+Predictions:
+```{r}
+Syear = unique(xSub$yearFac)
+
+predYear = do.call(cbind, predict(res_new, newdata = data.frame(yearFac = Syear,
+                dateInt = 0), type = "terms", terms = "s(yearFac)", se.fit = TRUE)) %*%
+                Pmisc::ciMat()
+
+# Create future data (1996-2025) for prediction
+newdat = data.frame(Date = seq(as.Date("1996/1/1"), as.Date("2025/12/31"), by = "2 weeks"),
+                    yearFac = Syear[1])
+newdat$dateInt = as.integer(newdat$Date)
+
+predTrend = do.call(cbind, predict(res_new, newdat, type = "terms", terms = "s(dateInt)",
+                   se.fit = TRUE)) %*% Pmisc::ciMat()
+
+# Simulate model uncertainty
+newX = predict(res_new, newdata = newdat, type = "lpmatrix")
+simCoef = rmvn(10, coef(res_new), vcov(res_new))
+isTrend = grep("s[(]dateInt", colnames(newX))
+simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
+
 ```
