@@ -69,11 +69,15 @@ matlines(
 
 ```
 
-```{r}
-# 1)
-## Use a negative binomial to account for overdispersion in the data, due to seasonality, deaths may be more common in one month
-## over the other, making fitting a poission not as good of an assumption since poisson assumes all variances are equal. Additionally the negative binomial models count data, therefore it is always non-negative, the death counts will always be non-negative.
+Questions:
 
+1) Discussion:
+A negative binomial model is used to account for overdispersion in the data. Due to seasonality, deaths may be more frequent in certain months, making the Poisson model less suitable, as it assumes equal variance across observations. Since the negative binomial model is designed for count data, it ensures that predicted death counts remain non-negative.
+
+The dateInt variable serves as a smoothing term to capture nonlinear trends in the data, allowing for more detailed patterns. The month term is included as a covariate to account for monthly variations in death counts.
+
+Additionally, an offset term is incorporated to adjust for differences in observation periods across months, as months with more days may naturally have higher death counts.
+```{r}
 #2)
 library('mgcv')
 fittedmodel = gam(
@@ -83,26 +87,21 @@ fittedmodel = gam(
   data = x
 )
 
+```
+
+3) Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the
+motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as
+well as conveying the important statistical information (prediction intervals as well as point predictions).
+
+Discussion:
+There has been an overall decline in deaths overtime, since the highest levels were seen around 1980.
+The red line trend shows there are seasonal variations in the number of deaths in the month. The points in black appear to be modeled well by the trend in red.
+
+#**Questions for prof:
+#- How should we choose which month to represent in black?
+# - how do we convey the prediction intervals and point predictions
+```{r}
 ##3 
-newX2 = x
-newX2$month = format(newX2$date, '%b')
-
-pred2 = do.call(cbind, predict(
-  fittedmodel, newX2, se.fit = TRUE
-)) %*% Pmisc::ciMat()
-
-matplot(
-  newX2$date,
-  exp(cbind(pred1, pred2)),
-  lty = rep(c(1, 2, 2), 2),
-  col = rep(c('blue', 'red'), each = 3),
-  log = 'y', type = 'l', xlab = '',
-  ylab = 'deaths', xaxs = 'i'
-)
-
-points(x$date, x$killed, cex = 0.2)
-
-##----------------------
 # First prediction: using March as the month
 newdata$month <- "Mar"
 predx <- predict(fittedmodel, newdata)
@@ -115,7 +114,7 @@ predy <- predict(fittedmodel, newdata)
 plot(
   x$date, x$killed, 
   cex = 0.2, log = "y", 
-  xlab = "", ylab = ""
+  xlab = "Year", ylab = "Number of Deaths"
 )
 
 # Add predicted lines to the plot
