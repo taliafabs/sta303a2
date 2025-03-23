@@ -9,7 +9,13 @@ number-sections: true
 output: pdf_document
 ---
 
-# Motorcycle deaths
+# Q1: Motorcycle deaths
+
+```{r pmisc}
+if(!requireNamespace("Pmisc", quietly=TRUE)) {
+	install.packages("Pmisc", repos='http://r-forge.r-project.org')
+}
+```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 library(Hmisc)
@@ -32,7 +38,9 @@ x$dateInt = as.integer(x$date)
 x$logMonthDays = log(Hmisc::monthDays(x$date))
 x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
 +   1:12, 1), "%b"))
-res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, family = poisson(link = "log"))
+res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, 
+          family = poisson(link = "log")
+          )
 newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
 newdata$dateInt = as.integer(newdata$date)
 newdata$logMonthDays = log(30)
@@ -63,15 +71,47 @@ x
     Beta is the fixed effect of month
   $$
     Y_i  \sim Pois(D_i \lambda_i) \\
-    G(\lambda_i) = X_i \beta + U(t_i) \\
+    \text{log}(\lambda_i) = X_i \beta + U(t_i) \\
     U(.) \sim IWP_2(\sigma)
   $$
+The response variable, $Y_i$, is Poisson because the number of motorcycle deaths is a count variable. $D_i$ is the number of deaths in month $i$ and $\lambda_i$ is the intensity. 
 
 2. Show R code to fit the model using the `mcgv` package
-3. 
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+model1 <- gam(killed ~ s(dateInt) + month + offset(logMonthDays),
+              data=x,
+              family=poisson,
+              method = 'ML')
+```
 
+3. Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions).
+(4 points)
 
-# Heat
+```{r, fig.cap="There has been an overall decline in deaths overtime, since the highest levels were seen around 1980. The red line trend shows there are seasonal variations in the number of deaths in the month. The points in black appear to be modeled well by the trend in red"}
+#3 
+# First prediction: using March as the month
+newdata$month <- "Mar"
+predx <- predict(model1, newdata)
+
+# Second prediction: using the actual month of each date
+newdata$month <- format(newdata$date, "%b")
+predy <- predict(model1, newdata)
+
+# Plot original data
+plot(
+  x$date, x$killed, 
+  cex = 0.2, log = "y", 
+  xlab = "Year", ylab = "Number of Deaths"
+)
+
+# Add predicted lines to the plot
+matlines(
+  newdata$date, exp(cbind(predx, predy)), 
+  lty = 1
+)
+```
+
+# Q2: Heat
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 x[100, ]
