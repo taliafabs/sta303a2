@@ -33,7 +33,6 @@ xSub = x[x$summer & !is.na(x$Max.Temp), ]
 View(xSub)
 View(x)
 
-
 library("mgcv")
 
 # Model 1 (res1)
@@ -62,7 +61,9 @@ res2$formula
 res3$formula
 
 ```
-##Q1
+
+Q1: 1. Write down a set of equations (or several sets of equations) which corresponds to the three calls to gam.
+Explain the differences between the models in res1, res2 and res3? (2 points)
 ##Discussion: 
 res 1 and res 3 have a k value equal to 100, this is a component of the smooth term. Due to the k value being greater
 in these 2 models, compared to res 2 having a k value of 4 in the smooth term, res1 and res3 will be able to capture more
@@ -82,8 +83,70 @@ $$
 
 ```
 
-##Q3
+##Q3: 
+Create a nicer version of fig. 4, with axis labels and an informative caption. You can refer to variables
+given in the equations from Question 1. The caption should be two or three sentences, a reader familiar
+with generalized additive models should understand everything about the figure (even if they have not
+read this homework assignment) (3 points)
 ```{r}
+Syear = unique(xSub$yearFac)
+
+predYear = do.call(cbind, predict(res1, 
+                                  newdata = data.frame(yearFac = Syear, dateInt = 0), 
+                                  type = "terms", 
+                                  terms = "s(yearFac)", 
+                                  se.fit = TRUE)) %*% Pmisc::ciMat()
+
+newdat = data.frame(Date = seq(as.Date("1900/1/1"), as.Date("2035/12/31"), by = "2 weeks"), 
+                    yearFac = Syear[1])
+
+newdat$dateInt = as.integer(newdat$Date)
+
+predTrend = do.call(cbind, predict(res1, 
+                                   newdat, 
+                                   type = "terms", 
+                                   terms = "s(dateInt)", 
+                                   se.fit = TRUE)) %*% Pmisc::ciMat()
+
+newX = predict(res1, newdata = newdat, type = "lpmatrix")
+
+simCoef <- rmvn(10, coef(res1), vcov(res1))
+
+isTrend = grep("s[(]dateInt", colnames(newX))
+
+simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
+
+Syear = as.numeric(as.character(Syear))
+
+View(newdat)
+
+matplot(Syear, predYear, 
+        xlab = "Degrees C",
+        ylab = "Prediction Interval",
+        cex = c(1, 0, 0), 
+        pch = 16,
+        col = "black")
+
+segments(Syear, predYear[, 2], Syear, predYear[, 3], lwd = 0.5)
+
+matplot(newdat$Date, simTrend, 
+        type = "l", 
+        lty = 1, 
+        col = RColorBrewer::brewer.pal(ncol(simTrend), "Paired"), 
+        xaxt = "n", 
+        xaxs = "i", 
+        yaxs = "i", 
+        ylim = range(predTrend),
+        xlab = "")
+
+matlines(newdat$Date, predTrend, 
+         lty = c(1, 2, 2), 
+         col = "black", 
+         lwd = 2)
+
+forX = as.Date(ISOdate(seq(1880, 2050, by = 25), 1, 1))
+
+axis(1, forX, format(forX, "%Y"))
 
 ```
 

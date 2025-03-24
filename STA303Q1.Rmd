@@ -86,7 +86,6 @@ fittedmodel = gam(
   method = 'ML', 
   data = x
 )
-
 ```
 
 3) Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the
@@ -121,5 +120,19 @@ plot(
 matlines(
   newdata$date, exp(cbind(predx, predy)), 
   lty = 1
+)
+
+## prediction interval
+matlines(
+  newdata$date,
+  exp(
+    do.call(
+      cbind,
+      predict(fittedmodel, newdata, se.fit = TRUE)
+    ) %*% Pmisc::ciMat()
+  ),
+  lty = 3,  # Dotted line
+  col = 'red',  # Line color
+  lwd = 1  # Line width (adjust as needed)
 )
 ```
