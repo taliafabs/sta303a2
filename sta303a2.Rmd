@@ -11,7 +11,7 @@ output: pdf_document
 
 # Q1: Motorcycle deaths
 
-```{r pmisc}
+```{r pmisc, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 if(!requireNamespace("Pmisc", quietly=TRUE)) {
 	install.packages("Pmisc", repos='http://r-forge.r-project.org')
 }
@@ -26,7 +26,7 @@ library(kableExtra)
 library(janitor)
 ```
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE}
 # retrieving the data
 theUrl = "http://pbrown.ca/teaching/appliedstats/data/motorcycle.rds"
 theFile = basename(theUrl)
@@ -52,31 +52,47 @@ plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
 matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
 ```
 
-```{r}
-x
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+head(x)
 ```
 
-1.  Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
+#### 1. Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
 
-    Do we have to check for overdispersion or is this already telling us it is poission?
+<!-- Do we have to check for overdispersion or is this already telling us it is poission? -->
 
-    Number of motorcylcle deaths every month from 1980 to 2025
+<!-- Number of motorcylcle deaths every month from 1980 to 2025 -->
 
-    An appropriate generalized additive model
+<!-- An appropriate generalized additive model -->
 
-    We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable.
+<!-- We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable. -->
 
-    Covariate Xi is month
+<!-- Covariate Xi is month -->
+<!-- Beta is the fixed effect of month -->
 
-    Beta is the fixed effect of month
   $$
-    Y_i  \sim Pois(D_i \lambda_i) \\
+    Y_i | U  \sim Pois(D_i \lambda_i) \\
     \text{log}(\lambda_i) = X_i \beta + U(t_i) \\
     U(.) \sim IWP_2(\sigma)
   $$
-The response variable, $Y_i$, is Poisson because the number of motorcycle deaths is a count variable. $D_i$ is the number of deaths in month $i$ and $\lambda_i$ is the intensity. 
 
-2. Show R code to fit the model using the `mcgv` package
+where:
+
+-   $Y_i$ = the number of motorcycle deaths in month $i$
+
+-   $D_i$ = the number of days in month $i$
+
+-   $\lambda_i$ = intensity of expected number of deaths
+
+-   $X_i$ = month indicator variables (seasonality, month as a factor)
+
+-   $\beta$ = fixed month effect
+
+-   $U(t_i)$ = smooth term, second-order Integrated Wiener Process (IWP)
+
+The response variable, $Y_i$, is Poisson because the number of motorcycle deaths is a non-negative count variable. $D_i$ is the number of deaths in month $i$ and $\lambda_i$ is the intensity. We will use $D_i$ as an offset because exposure time varies by the length of the month (i.e. February has 28 or 29 days and January has 31 days). The log link function ensures that the predicted counts are non-negative and creates a multiplicative relationship between the predictors and response. 
+
+#### 2. Show R code to fit the model using the `mcgv` package
+
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 model1 <- gam(killed ~ s(dateInt) + month + offset(logMonthDays),
               data=x,
@@ -84,45 +100,51 @@ model1 <- gam(killed ~ s(dateInt) + month + offset(logMonthDays),
               method = 'ML')
 ```
 
-3. Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions).
-(4 points)
+#### 3. Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions). (4 points)
 
-```{r, fig.cap="There has been an overall decline in deaths overtime, since the highest levels were seen around 1980. The red line trend shows there are seasonal variations in the number of deaths in the month. The points in black appear to be modeled well by the trend in red"}
-#3 
-# First prediction: using March as the month
-newdata$month <- "Mar"
-predx <- predict(model1, newdata)
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE, fig.cap="Motorcycle deaths have declined over time, since 1980."}
+# predicted trend
+plot(x$date, 
+     x$killed,
+     col='darkgray', 
+     log='y',
+     xlab='', 
+     ylab='Motorcycle deaths',
+     cex=0.4
+     )
 
-# Second prediction: using the actual month of each date
-newdata$month <- format(newdata$date, "%b")
-predy <- predict(model1, newdata)
-
-# Plot original data
-plot(
-  x$date, x$killed, 
-  cex = 0.2, log = "y", 
-  xlab = "Year", ylab = "Number of Deaths"
+# seasonal
+matlines(x$date, 
+         exp(do.call(cbind, predict(model1, se.fit=TRUE)) %*% Pmisc::ciMat()),
+         lty=c(1,2,2), col='#377eb8'
+         
 )
 
-# Add predicted lines to the plot
-matlines(
-  newdata$date, exp(cbind(predx, predy)), 
-  lty = 1
-)
+# march
+newX = x; newX$month = 'Mar'
+newX$logMonthDays = log(31)
+
+matlines(x$date,
+         exp(do.call(cbind, predict(model1, newX, se.fit=TRUE)) %*% Pmisc::ciMat()),
+         lty = c(1, 2, 2), 
+         col='red3', 
+         lwd = c(1.5, 1, 1)
+         )
+# prediction rate mu_i (red), seasonally adjusted trend (black) with 95% prediction intervals
 ```
 
 # Q2: Heat
+
+#### 1.
+
+#### 2.
+
+#### 3.
+
+#### 4.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 x[100, ]
 ```
 
-```{r. echo=FALSE, message=FALSE, warning=FALSE}
-x$dateInt = as.integer(x$Date)
-x$yearFac = factor(format(x$Date, "%Y"))
-# xSub = x[x$summer & !is.na(x$Max.Temp), ]
-# res1 = gam(update.formula(Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")),
-# +   k = 100) + s(yearFac, bs = "re"), Pmisc::seasonalFormula(period = 365.25,
-# +   harmonics = 1:2, var = "dateInt")), data = xSub, method = "ML",
-# +   optimizer = "efs")
-```
+`{r. echo=FALSE, message=FALSE, warning=FALSE} x$dateInt = as.integer(x$Date) x$yearFac = factor(format(x$Date, "%Y")) # xSub = x[x$summer & !is.na(x$Max.Temp), ] # res1 = gam(update.formula(Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), # +   k = 100) + s(yearFac, bs = "re"), Pmisc::seasonalFormula(period = 365.25, # +   harmonics = 1:2, var = "dateInt")), data = xSub, method = "ML", # +   optimizer = "efs")`
