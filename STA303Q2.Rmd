@@ -73,10 +73,41 @@ Another key difference is that Res3 does not include yearFac as a random effect,
 
 1.)
 
-$$
-g(\mathbb{E}[Y]) = \beta_0 + f_1(\text{yearFac}) + f_2(\text{dateInt}) + f_3(\text{yearFac} * \text{dateInt}) + \epsilon
-$$
 
+$$
+Res1:\\ 
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2)\\
+
+\mu_i = f_1(\text{dateInt}) + f_2(\text{yearFac}) + f_3(\text{seasonal1}) + f_4(\text{seasonal2})\\
+Where:\\
+f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 100) \\
+f_2(\text{yearFac}) = s(\text{yearFac}, \text{bs} = "re") \\
+f_3(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+f_4(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
+$$
+$$
+\[
+\text{Res2:} \\
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i = f_1(\text{dateInt}) + f_2(\text{yearFac}) + f_3(\text{seasonal1}) + f_4(\text{seasonal2}) \\
+\text{Where:} \\
+f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 4) \\
+f_2(\text{yearFac}) = s(\text{yearFac}, \text{bs} = "re") \\
+f_3(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+f_4(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
+\]
+$$
+$$
+\[
+\text{Res3:} \\
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i = f_1(\text{dateInt}) + f_2(\text{seasonal1}) + f_3(\text{seasonal2}) \\
+\text{Where:} \\
+f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 100) \\
+f_2(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+f_3(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
+\]
+$$
 ##Q2
 
 ```{r}
@@ -89,6 +120,7 @@ given in the equations from Question 1. The caption should be two or three sente
 with generalized additive models should understand everything about the figure (even if they have not
 read this homework assignment) (3 points)
 ```{r}
+View(newdat)
 Syear = unique(xSub$yearFac)
 
 predYear = do.call(cbind, predict(res1, 
@@ -118,11 +150,9 @@ simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
 
 Syear = as.numeric(as.character(Syear))
 
-View(newdat)
-
 matplot(Syear, predYear, 
         xlab = "Degrees C",
-        ylab = "Prediction Interval",
+        ylab = "Predyear",
         cex = c(1, 0, 0), 
         pch = 16,
         col = "black")
