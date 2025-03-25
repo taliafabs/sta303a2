@@ -12,6 +12,7 @@ output: pdf_document
 # Q1: Motorcycle deaths
 
 ```{r pmisc, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+# if pmisc is more than a week old, fetch the latest 
 if(!requireNamespace("Pmisc", quietly=TRUE)) {
 	install.packages("Pmisc", repos='http://r-forge.r-project.org')
 }
@@ -65,7 +66,7 @@ head(x)
 <!-- An appropriate generalized additive model -->
 
 <!-- We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable. -->
-
+Negbinom can adapt to very low overdispersion
 <!-- Covariate Xi is month -->
 <!-- Beta is the fixed effect of month -->
 
@@ -91,13 +92,23 @@ where:
 
 The response variable, $Y_i$, is Poisson because the number of motorcycle deaths is a non-negative count variable. $D_i$ is the number of deaths in month $i$ and $\lambda_i$ is the intensity. We will use $D_i$ as an offset because exposure time varies by the length of the month (i.e. February has 28 or 29 days and January has 31 days). The log link function ensures that the predicted counts are non-negative and creates a multiplicative relationship between the predictors and response. 
 
+Sesonal components like pi cos or sin should be written down -- explain how seasonal components are being structured. be more specific. define seasonal component be as specific as possible
+
 #### 2. Show R code to fit the model using the `mcgv` package
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
-model1 <- gam(killed ~ s(dateInt) + month + offset(logMonthDays),
+model1 <- mgcv::gam(update.formula(killed ~ s(dateInt, k=4) + month + offset(logMonthDays),
+              Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
               data=x,
-              family=poisson,
-              method = 'ML')
+              family=nb(link=log),
+              method = 'ML'
+              )
+
+# model2 <- mgcv::gam(killed ~ s(dateInt, k=4) + month + offset(logMonthDays),
+#               data=x,
+#               family=poisson(link=log),
+#               method = 'ML'
+#               )
 ```
 
 #### 3. Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions). (4 points)
@@ -115,22 +126,24 @@ plot(x$date,
 
 # seasonal
 matlines(x$date, 
-         exp(do.call(cbind, predict(model1, se.fit=TRUE)) %*% Pmisc::ciMat()),
+         exp(do.call(cbind, predict(model1, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
          lty=c(1,2,2), col='#377eb8'
          
 )
 
-# march
+# problem is here
+# # march
 newX = x; newX$month = 'Mar'
 newX$logMonthDays = log(31)
 
-matlines(x$date,
-         exp(do.call(cbind, predict(model1, newX, se.fit=TRUE)) %*% Pmisc::ciMat()),
-         lty = c(1, 2, 2), 
-         col='red3', 
+matlines(newX$date,
+         exp(do.call(cbind, predict(model1, newX, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty = c(1, 2, 2),
+         col='red3',
          lwd = c(1.5, 1, 1)
          )
-# prediction rate mu_i (red), seasonally adjusted trend (black) with 95% prediction intervals
+
+# prediction rate mu_i (red), seasonally adjusted trend (red) with 95% prediction intervals
 ```
 
 # Q2: Heat
