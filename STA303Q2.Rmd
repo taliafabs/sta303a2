@@ -192,24 +192,125 @@ xnew = x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
 View(xnew)
 
 ##Fitting the new model
-res_new = gam(update.formula(
-  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1930/7/1")), k = 100) + 
-  s(yearFac, bs = "re"), 
+res_new <- gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1930/7/1")), k = 100) +
+    s(as.numeric(yearFac)),  # Change from factor to numeric smooth
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
 ), data = xnew, method = "ML", optimizer = "efs")
+
+View(x)
 
 ```
 
 Plotting Observed Values:
 ```{r}
-plot(xnew$Date, xnew$Max.Temp, 
-     main = "Scatterplot of Year vs. Max Temperature",
+xn = x[x$Date >= as.Date("1996-01-01") & !is.na(x$Max.Temp), ]
+View(xn)
+
+plot(xn$Date, xn$Max.Temp, 
+     main = "Scatterplot of Year vs. Max Temperature from 1996 to 2025",
      xlab = "Year", 
      ylab = "Max Temperature", 
      pch = 16, 
      col = ifelse(x$summer, "red", "black"))
 ```
 Plotting Predicted values:
+```{r}
+# Create a sequence of dates from 1996 to 2025
+pred_dates <- seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "day")
+
+# Convert dates to required format
+pred_df <- data.frame(
+  Date = pred_dates,
+  dateInt = as.integer(pred_dates),  # Convert date to integer
+  summer = (format(pred_dates, "%m") %in% c("06", "07", "08"))  # Identify summer months
+)
+
+# Add year as a numeric variable (instead of incorrectly inside data.frame())
+pred_df$yearFac <- as.numeric(format(pred_df$Date, "%Y"))
+
+# Generate predictions
+pred_df$Predicted_MaxTemp <- predict(res_new, newdata = pred_df, type = "response")
+
+
+# Plot observed values
+plot(xn$Date, xn$Max.Temp, 
+     main = "Observed vs. Predicted Max Temperature (1996-2025)", 
+     xlab = "Year", 
+     ylab = "Max Temperature", 
+     pch = 16, 
+     col = ifelse(xn$summer, "red", "black"))
+
+# Add predicted trend line
+lines(pred_df$Date, pred_df$Predicted_MaxTemp, col = "blue", lwd = 2)
+
+```
+```{r}
+# Extract unique years from dataset
+Syear <- unique(xnew$yearFac)
+
+# Predict year-wise trend component with confidence intervals
+predYear <- do.call(cbind, predict(
+  res_new, 
+  x = data.frame(yearFac = Syear, dateInt = 0), 
+  type = "terms", 
+  terms = "s(yearFac)", 
+  se.fit = TRUE
+)) %*% Pmisc::ciMat()
+
+# Create a new dataset for predictions every 2 weeks from 1900 to 2035
+newdat <- data.frame(
+  Date = seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "2 weeks"),
+  yearFac = Syear[1]
+)
+
+# Convert dates to integer format
+newdat$dateInt <- as.integer(newdat$Date)
+
+# Predict trend over time with confidence intervals
+predTrend <- do.call(cbind, predict(
+  res_new, 
+  newdat, 
+  type = "terms", 
+  terms = "s(dateInt)", 
+  se.fit = TRUE
+)) %*% Pmisc::ciMat()
+
+# Generate design matrix for predictions
+newX <- predict(res_new, x = newdat, type = "lpmatrix")
+
+# Simulate coefficient draws from multivariate normal distribution
+simCoef <- rmvn(10, coef(res_new), vcov(res_new))
+
+# Identify trend-related coefficients
+isTrend <- grep("s[(]dateInt", colnames(newX))
+
+# Compute simulated trends
+simTrend <- tcrossprod(newX[, isTrend], simCoef[, isTrend])
+
+# Convert year factor to numeric for plotting
+Syear <- as.numeric(as.character(Syear))
+
+# Plot predicted year-wise trends
+matplot(Syear, predYear, xlab = "Degrees C", cex = c(1, 0, 0), pch = 16, col = "black")
+segments(Syear, predYear[, 2], Syear, predYear[, 3], lwd = 0.5)
+
+# Plot simulated trend lines
+matplot(
+  newdat$Date, simTrend, type = "l", lty = 1, 
+  col = RColorBrewer::brewer.pal(ncol(simTrend), "Paired"), 
+  xaxt = "n", xaxs = "i", yaxs = "i", ylim = range(predTrend), 
+  xlab = ""
+)
+
+# Overlay trend predictions with confidence intervals
+matlines(newdat$Date, predTrend, lty = c(1, 2, 2), col = "black", lwd = 2)
+
+# Format x-axis with year labels
+forX <- as.Date(ISOdate(seq(1880, 2050, by = 25), 1, 1))
+axis(1, forX, format(forX, "%Y"))
+```
+
 ```{r}
 Syear2 = unique(xnew$yearFac)
 
