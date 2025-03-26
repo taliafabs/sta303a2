@@ -68,6 +68,65 @@ matlines(
 )
 
 ```
+1 test:
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+model1 <- mgcv::gam(update.formula(killed ~ s(dateInt, k=50) + offset(logMonthDays),
+              Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
+              data=x,
+              family=nb(link = log),
+              method = 'ML'
+              )
+
+```
+
+#### 3. Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions). (4 points)
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE, fig.cap="Motorcycle deaths have declined over time, since 1980."}
+# predicted trend
+plot(x$date, 
+     x$killed,
+     col='darkgray', 
+     log='y',
+     xlab='', 
+     ylab='Motorcycle deaths',
+     cex=0.4
+     )
+
+# seasonal
+matlines(x$date, 
+         exp(do.call(cbind, predict(model1, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty=c(1,2,2), col='#377eb8'
+         
+)
+
+# problem is here
+# # march
+newX$month <- factor("Mar", levels = levels(x$month))
+newX$logMonthDays = log(31)
+
+# First prediction: using March as the month
+newdata$month <- "Mar"
+predx <- predict(fittedmodel, newdata)
+
+# Second prediction: using the actual month of each date
+newdata$month <- format(newdata$date, "%b")
+predy <- predict(fittedmodel, newdata)
+
+# Add predicted lines to the plot
+matlines(
+  newdata$date, exp(cbind(predx, predy)), 
+  lty = 1
+)
+
+matlines(newX$date,
+         exp(do.call(cbind, predict(model1, newX, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty = c(1, 2, 2),
+         col='red3',
+         lwd = c(1.5, 1, 1)
+         )
+
+# prediction rate mu_i (red), seasonally adjusted trend (red) with 95% prediction intervals
+```
 
 Questions:
 
