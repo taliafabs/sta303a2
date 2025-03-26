@@ -197,8 +197,57 @@ res_new = gam(update.formula(
   s(yearFac, bs = "re"), 
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
 ), data = xnew, method = "ML", optimizer = "efs")
+
 ```
 
+Plotting Observed Values:
+```{r}
+plot(xnew$Date, xnew$Max.Temp, 
+     main = "Scatterplot of Year vs. Max Temperature",
+     xlab = "Year", 
+     ylab = "Max Temperature", 
+     pch = 16, 
+     col = ifelse(x$summer, "red", "black"))
+```
+Plotting Predicted values:
+```{r}
+Syear2 = unique(xnew$yearFac)
+
+predYear = do.call(cbind, predict(res_new, xnew = data.frame(yearFac = Syear2,
+dateInt = 0), type = "terms", terms = "s(yearFac)", se.fit = TRUE)) %*%
+Pmisc::ciMat()
+
+
+newdat2 = data.frame(Date = seq(as.Date("1900/1/1"), as.Date("2050/12/31"),
+  by = "2 weeks"), yearFac = Syear2[1])
+
+newdat2$dateInt = as.integer(newdat2$Date)
+
+predTrend2 <- predict(res_new, newdat2, type = "terms", terms = "s(dateInt)", se.fit = TRUE)
+predTrend2_lower <- predTrend2$fit - 1.96 * predTrend2$se.fit
+predTrend2_upper <- predTrend2$fit + 1.96 * predTrend2$se.fit
+
+# Initialize the plot window (with no data) to set up the axes and labels
+plot(newdat2$Date, predTrend2$fit, type = "n",  # type = "n" means no points are plotted
+     xlab = "Date", ylab = "Max Temperature", 
+     main = "Predicted Trends with Confidence Intervals")
+
+# Plot the predicted trend lines (central estimate)
+matlines(newdat2$Date, predTrend2$fit, lty = 1, col = "red", lwd = 2)
+
+# Plot the confidence intervals
+matlines(newdat2$Date, cbind(predTrend2_lower, predTrend2_upper), lty = 2, col = "blue", lwd = 1)
+
+# Customize the x-axis labels if necessary
+forX <- as.Date(ISOdate(seq(1880, 2050, by = 25), 1, 1))
+axis(1, forX, format(forX, "%Y"))
+
+
+matlines(xnew$Date, predTrend2, lty = c(1, 2, 2), col = "black",
+  lwd = 2)
+  forX = as.Date(ISOdate(seq(1880, 2050, by = 25), 1, 1))
+  axis(1, forX, format(forX, "%Y"))
+```
 Predictions:
 ```{r}
 Syear = unique(xSub$yearFac)
