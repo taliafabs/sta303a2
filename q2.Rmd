@@ -125,6 +125,8 @@ $$ where:
 -    $f$ is the smooth trend over time (dateInt), modeled using a spline
     with k=100 knots.
 
+Differences between the models in `res1`, `res2`, and `res3`:
+
 # Part 2
 
 # Part 3
@@ -136,22 +138,56 @@ Re-fitting the model using only data from 1995 and earlier
 Comparable to the covid excess ontario deaths shown in lecture — what
 would things have looked like if trends up to 1995 continued???
 
-looking at excess warming, analogous to excess mortality
+looking at excess warming, analogous to excess mortality???
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 # fit model up to December 31 1995
-tempGAM1996 = gam(res1$formula,
-                  method='ML',
-                  data= x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
-                  ) 
+# next step is to forecast
+# tempGAM1996 = gam(res1$formula,
+#                   method='ML',
+#                   data= x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ],
+#                   optimizer='efs'
+#                   ) 
+tempGAM1996 = gam(update.formula(
+      Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+      s(yearFac, bs = "re"), 
+      Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+    ),
+    data=x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ],
+    method='ML',
+    optimizer='efs'
+)
 ```
 
 ```{r}
+# forecast
 jan_1_1996 = as.Date('1996/1/1')
 jan_1_2025 = as.Date('2025/1/1')
 X_forecast = data.frame(
   date = seq(jan_1_1996, jan_1_2025, by='month'),
   month='Mar')
 X_forecast$dateInt = as.integer(X_forecast$date)
+
+pred4 = do.call(
+  cbind,
+  predict(tempGAM1996, X_forecast, se.fit=TRUE)
+  ) %*% Pmisc::ciMat()
+```
+
+```{r}
+# compare model forecast to observed data
+matplot(X_forecast$date, pred4,
+        lty=c(1,2,2),
+        col='red',
+        xlim = c(jan_1_1996, jan_1_2025),
+        xlab='',
+        ylab = 'temperature'
+        )
+
+# plot the actual data points
+points(xSub$Date, xSub$Max.Temp, cex=0.3)
+
+# plot the trend?????
+abline(v=max(tempGam1996$model$dateInt)) 
 ```
