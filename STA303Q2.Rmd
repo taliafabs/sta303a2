@@ -30,9 +30,6 @@ x$yearFac = factor(format(x$Date, "%Y"))
 
 xSub = x[x$summer & !is.na(x$Max.Temp), ]
 
-View(xSub)
-View(x)
-
 library("mgcv")
 
 # Model 1 (res1)
@@ -41,6 +38,8 @@ res1 = gam(update.formula(
   s(yearFac, bs = "re"), 
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
 ), data = xSub, method = "ML", optimizer = "efs")
+
+summary(res1)
 
 # Model 2 (res2)
 res2 = gam(update.formula(
@@ -59,6 +58,8 @@ res3 = gam(update.formula(
 res1$formula
 res2$formula
 res3$formula
+
+summary(res1)
 
 ```
 
@@ -82,8 +83,8 @@ Y_i \sim \mathcal{N}(\mu_i, \sigma^2)\\
 Where:\\
 f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 100) \\
 f_2(\text{yearFac}) = s(\text{yearFac}, \text{bs} = "re") \\
-f_3(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
-f_4(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
+s_1(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+s_2(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
 $$
 $$
 \text{Res2:} \\
@@ -113,7 +114,6 @@ local tabloid newspaper either providing scientific justification for the Esteem
 explaining clearly why you disagree.
 
 ```{r}
-
 ```
 
 ##Q3: 
@@ -121,6 +121,11 @@ Create a nicer version of fig. 4, with axis labels and an informative caption. Y
 given in the equations from Question 1. The caption should be two or three sentences, a reader familiar
 with generalized additive models should understand everything about the figure (even if they have not
 read this homework assignment) (3 points)
+
+Figure Caption:
+The first plot shows the prediction intervals for the random effect of year on maximum temperature,
+showing the predicted unexplained variation by year. The second plot presents several simulated trends of the smoothing effect 
+
 ```{r}
 Syear = unique(xSub$yearFac)
 
@@ -152,8 +157,8 @@ simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
 Syear = as.numeric(as.character(Syear))
 
 matplot(Syear, predYear, 
-        xlab = "Degrees C",
-        ylab = "Predyear",
+        xlab = "Year",
+        ylab = "Predicted random effect",
         cex = c(1, 0, 0), 
         pch = 16,
         col = "black")
@@ -168,9 +173,9 @@ matplot(newdat$Date, simTrend,
         xaxs = "i", 
         yaxs = "i", 
         ylim = range(predTrend),
-        xlab = "")
+        xlab = "Year")
 
-matlines(newdat$Date, predTrend, 
+matlines(newdat$Date, predTrend,
          lty = c(1, 2, 2), 
          col = "black", 
          lwd = 2)
@@ -189,23 +194,70 @@ flawed models that have consistently failed at correctly predicting the future.â
 ```{r}
 xnew = x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
 
-View(xnew)
 
 ##Fitting the new model
 res_new <- gam(update.formula(
   Max.Temp ~ s(dateInt,pc = as.integer(as.Date("1930/7/1")), k = 50) +
-    s(yearFac, bs = "re"),  # Change from factor to numeric smooth
+    s(yearFac, bs = "re"), 
   Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
 ), data = xnew, method = "ML", optimizer = "efs")
-
 ```
 
+```{r}
+# forecast
+jan_1_1996 = as.Date('1996/1/1')
+jan_1_2025 = as.Date('2025/1/1')
+X_forecast = data.frame(
+  date = seq(jan_1_1996, jan_1_2025, by='month'),
+  month='Mar')
+X_forecast$dateInt = as.integer(X_forecast$date)
+
+pred4 = do.call(
+  cbind,
+  predict(tempGAM1996, X_forecast, se.fit=TRUE)
+  ) %*% Pmisc::ciMat()
+
+pred4 = do.call(
+  cbind,
+  predict(xnew, X_forecast, se.fit=TRUE)
+  ) %*% Pmisc::ciMat()
+
+matplot(X_forecast$date, pred4,
+        lty=c(1,2,2),
+        col='red',
+        xlim = c(jan_1_1996, jan_1_2025),
+        xlab='',
+        ylab = 'temperature'
+        )
+
+# plot the actual data points
+points(xSub$Date, xSub$Max.Temp, cex=0.3)
+
+# plot the trend?????
+abline(v=max(res_new$model$dateInt))
+```
+plotting predicted
+```{r}
+pred3 = do.call(cbind, predict(
+  res_new, xnew, se.fit = TRUE)
+) %*% Pmisc::ciMat()
+
+matplot(xnew$yearFac, exp(pred3),
+        lty = c(1, 2, 2), col = 'red',
+        xlim = as.Date(c('1996/1/1', '2025/03/05')),
+        ylim = c(8, 14) * 1000,
+        log = 'y', type = 'l', xlab = '',
+        ylab = 'Max.Temp')
+
+points(xnew$dateInt, xnew$Max.Temp, cex = 0.3)
+abline(v = max(deathsGam2020$model$dateInt))
+```
 Plotting Observed Values:
 ```{r}
 xn = x[x$Date >= as.Date("1996-01-01") & !is.na(x$Max.Temp), ]
 
 plot(xn$Date, xn$Max.Temp, 
-     main = "Scatterplot of Year vs. Max Temperature from 1996 to 2025",
+     main = "Observed values of Max Temperature from 1996 to 2025",
      xlab = "Year", 
      ylab = "Max Temperature", 
      pch = 16, 
@@ -272,5 +324,14 @@ matlines(newdat$Date, predTrend, lty = c(1, 2, 2), col = "black", lwd = 2)
 
 forX <- as.Date(ISOdate(seq(1996, 2025, by = 2), 1, 1))
 axis(1, forX, format(forX, "%Y"))
+
+```
+```{r}
+xpred <- data.frame(
+  dateInt = as.integer(seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "day")),
+  yearFac = factor(format(seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "day"), "%Y"))  # Ensure factor type matches model
+)
+predictions <- predict(res_new, newdata = xpred, se.fit = False)
+
 
 ```
