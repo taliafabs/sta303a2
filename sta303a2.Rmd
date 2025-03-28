@@ -59,13 +59,13 @@ A generalized additive model (GAM) suited for this problem is the Negative Binom
 
 The GAM that we will use for this problem is as follows:
 
-$$
-Y_i \sim \text{NegBinom}(D_i \mu_i, \tau)
-$$
 
-$$
-\text{log}(\mu_i) = \beta_0 + \sum_{j=1}^{12} \beta_j \mathbb{I}(\text{month}_i = j) + f(t_i; \alpha)
-$$
+```{=tex}
+\begin{align*} 
+Y_i &\sim \text{NegBinom}(D_i \mu_i, \tau) \\
+\text{log}(\mu_i) &= \beta_0 + \sum_{j=1}^{12} \beta_j \mathbb{I}(\text{month}_i = j) + f(t_i; \alpha)
+\end{align*}
+```
 
 where:
 
@@ -199,17 +199,14 @@ res3$formula
 ### Part 1
 
 Equations for `res1`
-
-$$
-Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
-$$
-
-$$
-\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
-$$
-
+```{=tex}
+\begin{align*} 
+Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i &= \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) \\
+&+ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+\end{align*}
+```
 where:
-
 -   $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
@@ -220,41 +217,37 @@ where:
 
 -   $f_2$ is the year random effect which accounts for variability between years. The use of `bs = "re"` in the code tells `mgcv::gam` to treat it as a random effect, and not a smoothing term.
 
-Equations for `res2`$$
-Y_i \sim \mathcal{N}(\mu_i, \sigma^2) 
-$$
 
-$$
-\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) 
-+ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
-$$
-
+Equations for `res2`
+```{=tex}
+\begin{align*}
+Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i &= \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) \\
+&+ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+\end{align*}
+```
 where:
-
 -   $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
 
 -   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine terms of the 6-month cycle
 
-```         
 -    $f_1$ is the smooth trend over time (dateInt), modeled using a
     spline with k=4 knots. The number of knots, k is the key
     difference between `res1` and `res2`
-```
 
 -   $f_2$ is the year random effect which accounts for variability between years. The use of `bs = "re"` in the code tells `mgcv::gam` to treat it as a random effect, and not a smoothing term.
 
-Equations for `res3` $$
-Y_i \sim \mathcal{N}(\mu_i, \sigma^2) 
-$$
 
-$$
-\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f(\text{dateInt}_i) 
-$$
-
+Equations for `res3` 
+```{=tex}
+\begin{align*}
+Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i &= \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f(\text{dateInt}_i) 
+\end{align*}
+```
 where:
-
 -   $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
@@ -262,6 +255,7 @@ where:
 -   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine terms of the 6-month cycle
 
 -   $f$ is the smooth trend over time (dateInt), modeled using a spline with k=100 knots.
+
 
 ##### Differences between the three models
 
@@ -294,7 +288,7 @@ forecast_dates <- seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "day")
 
 # create the forecast dataframe
 forecast_data <- data.frame(
-  dates = forecast_dates,
+  date = forecast_dates,
   dateInt = as.integer(forecast_dates),
   yearFac = factor(format(forecast_dates, "%Y"))
 )
@@ -305,9 +299,17 @@ forecast2025 = do.call(cbind,
                        predict(tempGam1996, forecast_data, se.fit=TRUE)
                        ) %*% Pmisc::ciMat()
 
+forecast_data$forecast <- forecast2025[, 1]  # Mean forecast
+forecast_data$lower <- forecast2025[, 2]     # Lower 95% 
+forecast_data$upper <- forecast2025[, 3]     # Upper 95% 
+
+actual_data <- subset(x, dateInt >= as.integer(as.Date("1996-01-01"))) # get the actual data
+
+comparison <- merge(forecast_data, actual_data, by = "dateInt", all.x = TRUE)
+dates <- as.Date(comparison$dateInt, origin = "1970-01-01")
 ```
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE, fig.cap="write the caption here. 2-3 sentences"}
 # plot actual data
 plot(dates, comparison$Max.Temp, col = "gray", pch = 16, cex = 0.4,
      xlab = "Date", ylab = "Max Temperature (°C)",
@@ -320,3 +322,5 @@ lines(dates, comparison$forecast, col = "magenta4", lwd = 1.5)
 lines(dates, comparison$lower, col = "magenta4", lwd = 1, lty = 2)  # Lower bound
 lines(dates, comparison$upper, col = "magenta4", lwd = 1, lty = 2)  # Upper bound
 ```
+
+These results hint that there may have been excess warming between 1996 and 2025, but the 95% prediction intervals (shown by the purple dotted lines) fall both above and below the actual max temperature data, so it's inconclusive.
