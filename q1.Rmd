@@ -152,6 +152,10 @@ matlines(newX$date,
 #          )
 ```
 
+```{r}
+mgcv::exclude.terms()
+```
+
 				
 
 			
