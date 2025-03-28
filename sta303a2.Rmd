@@ -64,10 +64,24 @@ Y_i \sim \text{NegBinom}(D_i \mu_i, \tau)
 $$
 
 $$
-\text{log}(\mu_i) = 
+\text{log}(\mu_i) = \beta_0 + \sum_{j=1}^{12} \beta_j \mathbb{I}(\text{month}_i = j) + f(t_i; \alpha)
 $$
 
 where:
+
+-   $Y_i$ is the number of motorcycle deaths in month $i$
+
+-   $\mu_i$ is the expected number of motorcycle deaths in month $i$. We use the log link function to
+
+-   $D_i$ is the number of days in month $i$. We use `logMonthDays` as an offset in our model to account for differences in exposure time.
+
+-   $\beta_0$ is the intercept.
+
+-   $\beta_1, ..., \beta_{12}$ are the fixed effects for month, where month is categorical.
+
+-   $f$ is the smooth function over time (dateInt) and we use $k=50$ knots.
+
+-   $\alpha$ is the smoothing coefficient.
 
 ### Part 2
 

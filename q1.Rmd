@@ -68,7 +68,7 @@ where:
 
 -   $Y_i$ is the number of motorcycle deaths in month $i$
 
--   $\mu_i$ is the expected number of motorcycle deaths in month $i$
+-   $\mu_i$ is the expected number of motorcycle deaths in month $i$. We use the log link function to
 
 -   $D_i$ is the number of days in month $i$. We use `logMonthDays` as an offset in our model to account for differences in exposure time.
 
