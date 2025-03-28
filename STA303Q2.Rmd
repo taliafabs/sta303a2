@@ -157,7 +157,6 @@ about the figure (even if they have not read this homework assignment)
 (3 points)
 
 ```{r}
-View(xSub)
 Syear = unique(xSub$yearFac)
 
 predYear = do.call(cbind, predict(res1, 
@@ -187,19 +186,12 @@ simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
 
 Syear = as.numeric(as.character(Syear))
 
-View(xSub)
-
-View(predYear)
-
-baseline_temp <- xSub[xSub$Date == as.Date("1990/7/1"), "Max.Temp"]
-
 ```
 
 # Plotting
 ```{r, fig.cap="The first plot shows the prediction intervals for the random effect of the year on maximum temperature, illustrating the predicted unexplained variation by year. The baseline year is 1990, so positive predicted year factor values indicate that maximum temperatures are expected to be higher in those specific years. Conversely, values below zero indicate that maximum temperatures are expected to be lower than the baseline year (1990).The second plot presents several simulated trends of the smoothing effect based on the seasonal variations in max temperature. The plot shows how the maximum temperature has increased over time. The trend in the second plot shows there has been more extreme max temperatures over the past 20 years."}
 
-## Plotting
-
+par(mfrow = c(1, 2))
 
 # First plot: Predicted random effect
 matplot(Syear, predYear, 
