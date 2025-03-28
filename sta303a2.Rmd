@@ -53,12 +53,9 @@ matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
 
 ### Part 1
 
-Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
-
 A generalized additive model (GAM) suited for this problem is the Negative Binomial GAM. We chose a Negative Binomial because our response variable, $Y_i$ (number of motorcycle deaths in month $i$) is a non-negative count variable. Unlike a Poisson, a Negative Binomial can account for over-dispersion (flexible enough to account for high or very low over-dispersion).
 
 The GAM that we will use for this problem is as follows:
-
 
 ```{=tex}
 \begin{align*} 
@@ -66,7 +63,6 @@ Y_i &\sim \text{NegBinom}(D_i \mu_i, \tau) \\
 \text{log}(\mu_i) &= \beta_0 + \sum_{j=1}^{12} \beta_j \mathbb{I}(\text{month}_i = j) + f(t_i; \alpha)
 \end{align*}
 ```
-
 where:
 
 -   $Y_i$ is the number of motorcycle deaths in month $i$
@@ -85,8 +81,6 @@ where:
 
 ### Part 2
 
-Show R code which fits this model using the mgcv package. (2 points)
-
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 
 # fit the model
@@ -102,7 +96,7 @@ motorcycleGAM$formula
 
 ### Part 3
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE, fig.cap="The figure displays motorcycle death data over time (dark gray points) with a log scale on the y-axis. The blue lines represent the seasonal effect, with the 95% prediction interval. The red lines illustrate the trend over time, with a 95% prediction interval shown by the red dotted lines. The data suggest a seasonal fluctuation in motorcycle deaths, along with a clear trend over time, as modeled by a generalized additive model (GAM)"}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE, fig.cap="The figure displays motorcycle death data over time (dark gray points) on the y-axis. The blue lines represent the seasonal effect (capturing seasonal variation), with the 95% prediction interval shown by the blue dotted lines. The red line illustrate the trend over time, for March, with a 95% prediction interval shown by the red dotted lines. The data suggests a seasonal fluctuation in motorcycle deaths, along with a decreasing trend over time, as modeled by a Negative Binomial Generalized Additive Model (GAM)"}
 
 # plot the actual data points
 plot(x$date, 
@@ -126,7 +120,6 @@ newX = x
 newX$month = 'Mar'
 newX$logMonthDays = log(31)
 
-# use linear function for the straight line
 matlines(newX$date,
          exp(do.call(cbind, predict(motorcycleGAM, newX,
                                     se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
@@ -136,6 +129,8 @@ matlines(newX$date,
          alpha=0.5
          )
 ```
+
+\newpage
 
 # Question 2: Heat
 
@@ -199,6 +194,7 @@ res3$formula
 ### Part 1
 
 Equations for `res1`
+
 ```{=tex}
 \begin{align*} 
 Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
@@ -207,7 +203,8 @@ Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
 \end{align*}
 ```
 where:
--   $Y_i$ is the Max Temp recorded in month $i$
+
+-    $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
 
@@ -217,8 +214,8 @@ where:
 
 -   $f_2$ is the year random effect which accounts for variability between years. The use of `bs = "re"` in the code tells `mgcv::gam` to treat it as a random effect, and not a smoothing term.
 
-
 Equations for `res2`
+
 ```{=tex}
 \begin{align*}
 Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
@@ -227,20 +224,19 @@ Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
 \end{align*}
 ```
 where:
--   $Y_i$ is the Max Temp recorded in month $i$
+
+-    $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
 
 -   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine terms of the 6-month cycle
 
--    $f_1$ is the smooth trend over time (dateInt), modeled using a
-    spline with k=4 knots. The number of knots, k is the key
-    difference between `res1` and `res2`
+-   $f_1$ is the smooth trend over time (dateInt), modeled using a spline with k=4 knots. The number of knots, k is the key difference between `res1` and `res2`
 
 -   $f_2$ is the year random effect which accounts for variability between years. The use of `bs = "re"` in the code tells `mgcv::gam` to treat it as a random effect, and not a smoothing term.
 
+Equations for `res3`
 
-Equations for `res3` 
 ```{=tex}
 \begin{align*}
 Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
@@ -248,6 +244,7 @@ Y_i &\sim \mathcal{N}(\mu_i, \sigma^2) \\
 \end{align*}
 ```
 where:
+
 -   $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
@@ -256,16 +253,108 @@ where:
 
 -   $f$ is the smooth trend over time (dateInt), modeled using a spline with k=100 knots.
 
-
 ##### Differences between the three models
 
 The models defined in `res1`, `res2`, and `res3` have a couple of key differences. Firstly, the models in `res1` and `res2` have one key difference: the number of knots, $k$. The `res1` model uses $k=100$ knots which allows for a more detailed and flexible smoothing function, whereas the `res2` model uses $k=4$ knots which allows for a "smoother", less detailed smoothing function. Larger $k$ is generally better because it fits the data better; the model in `res2` with $k=4$ probably has too few knots to fit the data well or capture details. The model in `res3` has $k=100$ knots just like the model in `res1`, but it omits the `yearFac` random effect and only includes a smooth term for `dateInt`. The `res3` model is the simplest but it does not capture unobserved temperature variability between years.
 
 ### Part 2
 
+The claim that there is no clear evidence of global temperature increase overlooks the data showing a clear increasing trend in maximum temperature, especially in recent years, as shown by Models 1 and 2, which account for the random effect of year on maximum temperature variations. Model 3 is not the best model, as it does not include the random effect of year, which fails to account for the possibility that some years may have consistently higher or lower maximum temperatures than others, potentially missing important conclusions. Concluding that maximum temperatures have increased over time should not be discredited simply because some years have experienced lower maximum temperatures than others. The frequency of high maximum temperatures in recent years clearly captures the increase in temperature when accounting for year-to-year variation as a random effect.
+
 ### Part 3
 
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# View(xSub)
+Syear = unique(xSub$yearFac)
+
+predYear = do.call(cbind, predict(res1, 
+                                  newdata = data.frame(yearFac = Syear, dateInt = 0), 
+                                  type = "terms", 
+                                  terms = "s(yearFac)", 
+                                  se.fit = TRUE)) %*% Pmisc::ciMat()
+
+newdat = data.frame(Date = seq(as.Date("1900/1/1"), as.Date("2035/12/31"), by = "2 weeks"), 
+                    yearFac = Syear[1])
+
+newdat$dateInt = as.integer(newdat$Date)
+
+predTrend = do.call(cbind, predict(res1, 
+                                   newdat, 
+                                   type = "terms", 
+                                   terms = "s(dateInt)", 
+                                   se.fit = TRUE)) %*% Pmisc::ciMat()
+
+newX = predict(res1, newdata = newdat, type = "lpmatrix")
+
+simCoef <- rmvn(10, coef(res1), vcov(res1))
+
+isTrend = grep("s[(]dateInt", colnames(newX))
+
+simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
+
+Syear = as.numeric(as.character(Syear))
+
+# View(xSub)
+# 
+# View(predYear)
+
+baseline_temp <- xSub[xSub$Date == as.Date("1990/7/1"), "Max.Temp"]
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE, fig.cap="Plot (a) shows the prediction intervals for the random effect of the year on maximum temperature, highlighting the variation in temperatures by year relative to the baseline of 1990. Positive year factor values indicate higher expected temperatures, while negative values suggest lower temperatures compared to 1990. Plot (b) presents several simulated trends of the smoothing effect based on seasonal variations in maximum temperature, showing how maximum temperatures have increased over time with more extreme values observed over the past 20 years."}
+
+# The first plot, from Figure 4(a) shows the prediction intervals for the random effect of the year on maximum temperature, illustrating the predicted unexplained variation by year. The baseline year is 1990, so positive predicted year factor values indicate that maximum temperatures are expected to be higher in those specific years. Conversely, values below zero indicate that maximum temperatures are expected to be lower than the baseline year (1990).The second plot, from Figure 4(b) presents several simulated trends of the smoothing effect based on the seasonal variations in max temperature. The plot shows how the maximum temperature has increased over time. The trend in the second plot shows there has been more extreme max temperatures over the past 20 years.
+
+par(mfrow = c(1, 2),    # Side-by-side layout (1 row, 2 columns)
+    mar = c(4, 4, 2, 1), # Adjust margins (left, bottom, top, right)
+    oma = c(1, 0, 0, 0)) # Outer margins
+# First plot: Predicted random effect
+matplot(Syear, predYear, 
+        xlab = "Year", 
+        ylab = "Year Effect on Max Temperature", 
+        pch = 16, 
+        col = "black",
+        cex.lab = 0.6,
+        cey.lab=0.6)
+
+segments(Syear, predYear[, 2], Syear, predYear[, 3], lwd = 0.5)
+mtext("a) ", side = 1, line = 4, at = mean(Syear), cex = 0.6)
+
+# Second plot: Simulated temperature trends
+matplot(newdat$Date, simTrend, 
+        type = "l", 
+        lty = 1, 
+        col = RColorBrewer::brewer.pal(ncol(simTrend), "Paired"), 
+        xaxt = "n", 
+        xaxs = "i", 
+        yaxs = "i", 
+        ylim = range(predTrend),
+        ylab = "Simulated Max Temperature Trend (ºC)", 
+        xlab = "Year",
+        cex.lab = 0.6,
+        cey.lab=0.6)
+
+
+matlines(newdat$Date, predTrend, 
+         lty = c(1, 2, 2), 
+         col = "black", 
+         lwd = 2)
+
+# Custom x-axis
+forX = as.Date(ISOdate(seq(1880, 2050, by = 25), 1, 1))
+axis(1, forX, format(forX, "%Y"))
+mtext("b) ", side = 1, line = 4, at = mean(newdat$Date), cex = 0.6)
+```
+
+\newpage
+
 ### Part 4
+
+To answer this question, we re-fit the model defined in `res1` using only data from before 1996 and used it to forecast how temperature trends would have looked if evidence of excess warming was never found in 1996.
+
+The People's Party is not necessarily correct in saying that “Climate change alarmism is based on flawed models that have consistently failed at correctly predicting the future.” The results shown below hint that there may have been excess warming between 1996 and 2025, as the actual max temperature data (gray dots) falls above the forecast based on a model fit with pre-1996 data (purple). However, the 95% prediction intervals (shown by the purple dotted lines) are wide and they fall both above and below the actual max temperature data, so it's inconclusive.
+
+This does not indicate a flawed model; it *suggests the possibility of* but *does not conclusively prove nor refute* the presence of excess warming.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -309,9 +398,9 @@ comparison <- merge(forecast_data, actual_data, by = "dateInt", all.x = TRUE)
 dates <- as.Date(comparison$dateInt, origin = "1970-01-01")
 ```
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE, fig.cap="write the caption here. 2-3 sentences"}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE, fig.cap="This plot displays the forecasted maximum temperatures from 1996 to 2025 based on a model fit using only pre-1996 data in purple. The 95% prediction intervals are shown by the purple dashed lines. The actual maximum temperatures observed between 1996 and 2025 are shown by the gray dots. We see that the observed maximum temperatures fall above the purple line but within the 95% prediction intervals; this suggests that there may have been execss warming after 1996, but results are inconclusive because the actual observations (gray) fall within the 95% prediction interval for the forecast (purple dotted lines)."}
 # plot actual data
-plot(dates, comparison$Max.Temp, col = "gray", pch = 16, cex = 0.4,
+plot(dates, comparison$Max.Temp, col = "gray60", pch = 16, cex = 0.4, alpha=0.7,
      xlab = "Date", ylab = "Max Temperature (°C)",
      main = "Forecasted vs Actual Max Temperatures (1996-2025)")
 
@@ -322,5 +411,3 @@ lines(dates, comparison$forecast, col = "magenta4", lwd = 1.5)
 lines(dates, comparison$lower, col = "magenta4", lwd = 1, lty = 2)  # Lower bound
 lines(dates, comparison$upper, col = "magenta4", lwd = 1, lty = 2)  # Upper bound
 ```
-
-These results hint that there may have been excess warming between 1996 and 2025, but the 95% prediction intervals (shown by the purple dotted lines) fall both above and below the actual max temperature data, so it's inconclusive.
