@@ -70,42 +70,46 @@ Equations for `res1`
 
 $$
 Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
-\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \\
+ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
 $$ where:
 
--    $Y_i$ is the Max Temp recorded in month $i$
+-   $Y_i$ is the Max Temp recorded in month $i$
 
--    $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
     terms of the 12-month cycle
 
--    $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
     terms of the 6-month cycle
 
--    $f_1$ is the smooth trend over time (dateInt), modeled using a
+-   $f_1$ is the smooth trend over time (dateInt), modeled using a
     spline with k=100 knots
 
--    $f_2$ is the year random effect which accounts for variability
+-   $f_2$ is the year random effect which accounts for variability
     between years. The use of `bs = "re"` in the code tells `mgcv::gam`
     to treat it as a random effect, and not a smoothing term.
 
 Equations for `res2`$$
 Y_i \sim \mathcal{N}(\mu_i, 0) \\
-\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) \\
++ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
 $$ where:
 
--    $Y_i$ is the Max Temp recorded in month $i$
+-   $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
     terms of the 12-month cycle
 
--    $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
     terms of the 6-month cycle
 
-    -    $f_1$ is the smooth trend over time (dateInt), modeled using a
-        spline with k=4 knots. The number of knots, k is the key
-        difference between `res1` and `res2`
+```         
+-    $f_1$ is the smooth trend over time (dateInt), modeled using a
+    spline with k=4 knots. The number of knots, k is the key
+    difference between `res1` and `res2`
+```
 
--    $f_2$ is the year random effect which accounts for variability
+-   $f_2$ is the year random effect which accounts for variability
     between years. The use of `bs = "re"` in the code tells `mgcv::gam`
     to treat it as a random effect, and not a smoothing term.
 
@@ -114,15 +118,15 @@ Y_i \sim \mathcal{N}(\mu_i, 0) \\
 \mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f(\text{dateInt}_i) 
 $$ where:
 
--    $Y_i$ is the Max Temp recorded in month $i$
+-   $Y_i$ is the Max Temp recorded in month $i$
 
 -   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
     terms of the 12-month cycle
 
--    $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
     terms of the 6-month cycle
 
--    $f$ is the smooth trend over time (dateInt), modeled using a spline
+-   $f$ is the smooth trend over time (dateInt), modeled using a spline
     with k=100 knots.
 
 Differences between the models in `res1`, `res2`, and `res3`:
@@ -149,12 +153,15 @@ looking at excess warming, analogous to excess mortality???
 #                   data= x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ],
 #                   optimizer='efs'
 #                   ) 
+
+x4 = x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
+
 tempGAM1996 = gam(update.formula(
       Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
       s(yearFac, bs = "re"), 
       Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
     ),
-    data=x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ],
+    data=x4,
     method='ML',
     optimizer='efs'
 )

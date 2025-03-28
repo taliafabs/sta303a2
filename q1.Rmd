@@ -51,11 +51,11 @@ matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
 
 # Part 1
 
-Write down, in equations not R code, a generalized additive model suitable for this problem. Explain
-each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma
-distributed because the number of deaths must be positive”). (4 points)
+Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
 
 A generalized additive model (GAM) suited for this problem is the Negative Binomial GAM. We chose a Negative Binomial because our response variable, $Y_i$ (number of motorcycle deaths in month $i$) is a non-negative count variable, and unlike a Poission, it can account for over-dispersion (flexible enough to account for high or very low over-dispersion).
+
+The GAM that we will use for this problem is as follow
 
 The GAM that we will use for this problem is as follows:
 
@@ -78,31 +78,31 @@ where:
 
 -   $\alpha$ is the smoothing coefficient.
 
-# Part 2				
+# Part 2
 
 Show R code which fits this model using the mgcv package. (2 points)
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
-motorcycleGAM <- mgcv::gam(
-  update.formula(killed ~ offset(logMonthDays) +  s(dateInt, k=50),
-  Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
-  data=x,
-  family=nb(link='log'),
-  method='ML'
-)
+# motorcycleGAM <- mgcv::gam(
+#   update.formula(killed ~ offset(logMonthDays) +  s(dateInt, k=50),
+#   Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
+#   data=x,
+#   family=nb(link='log'),
+#   method='ML'
+# )
 
-# motorcycleGAM <- mgcv::gam(killed ~ month + offset(logMonthDays) + s(dateInt, k=50),
-#                    data=x,
-#                    family=nb,
-#                    method='ML'
-#                    )
+motorcycleGAM <- mgcv::gam(killed ~ month + offset(logMonthDays) + s(dateInt, k=50),
+                   data=x,
+                   family=nb,
+                   method='ML'
+                   )
+
+motorcycleGAM$formula
 ```
 
-# Part 3				
+# Part 3
 
-Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the
-motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as
-well as conveying the important statistical information (prediction intervals as well as point predictions).				
+Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions).
 
 (4 points)
 
@@ -134,7 +134,7 @@ newX$logMonthDays = log(31)
 # use linear function for the straight line
 matlines(newX$date,
          exp(do.call(cbind, predict(motorcycleGAM, newX,
-                                    exclude = attributes(res$terms)$term.labels[2:5],
+                                    # exclude = attributes(res$terms)$term.labels[2:5],
                                     se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
          lty = c(1, 2, 2),
          col='coral3',
@@ -156,17 +156,4 @@ matlines(newX$date,
 mgcv::exclude.terms()
 ```
 
-				
-
-			
-
-		
-
-	
-
 # 
-			
-
-		
-
-	

@@ -1,0 +1,256 @@
+---
+title: "STA303 Assignment 2"
+author: 
+- "Talia Fabregas"
+- "Kasandra Tworzynaski"
+date: "2025-03-28"
+output: pdf_document
+---
+
+```{r pmisc, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+# if pmisc is more than a week old, fetch the latest 
+if(!requireNamespace("Pmisc", quietly=TRUE)) {
+	install.packages("Pmisc", repos='http://r-forge.r-project.org')
+}
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+library(Hmisc)
+library(Pmisc)
+# install.packages("mcgv")
+library(mgcv)
+library(kableExtra)
+library(janitor)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=TRUE, fig.cap="Provided on the assignment 2 handout"}
+# retrieving the data
+theUrl = "http://pbrown.ca/teaching/appliedstats/data/motorcycle.rds"
+theFile = basename(theUrl)
+if (!file.exists(theFile)) download.file(theUrl, theFile)
+x = readRDS(theFile)
+
+# preparing the data
+x$dateInt = as.integer(x$date)
+x$logMonthDays = log(Hmisc::monthDays(x$date))
+x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
++   1:12, 1), "%b"))
+res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, 
+          family = poisson(link = "log")
+          )
+newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
+newdata$dateInt = as.integer(newdata$date)
+newdata$logMonthDays = log(30)
+newdata$month = "Mar"
+pred1 = predict(res, newdata)
+newdata$month = format(newdata$date, "%b")
+pred2 = predict(res, newdata)
+plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
+matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
+```
+
+# Question 1: Motorcycle Accidents
+
+### Part 1
+
+Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
+
+A generalized additive model (GAM) suited for this problem is the Negative Binomial GAM. We chose a Negative Binomial because our response variable, $Y_i$ (number of motorcycle deaths in month $i$) is a non-negative count variable. Unlike a Poisson, a Negative Binomial can account for over-dispersion (flexible enough to account for high or very low over-dispersion).
+
+The GAM that we will use for this problem is as follows:
+
+$$
+Y_i \sim \text{NegBinom}(D_i \mu_i, \tau)
+$$
+
+$$
+\text{log}(\mu_i) = 
+$$
+
+where:
+
+### Part 2
+
+Show R code which fits this model using the mgcv package. (2 points)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+# fit the model
+motorcycleGAM <- mgcv::gam(killed ~ month + offset(logMonthDays) + s(dateInt, k=50),
+                   data=x,
+                   family=nb,
+                   method='ML'
+                   )
+
+# show the formula (just for reference)
+motorcycleGAM$formula
+```
+
+### Part 3
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE, fig.cap="The figure displays motorcycle death data over time (dark gray points) with a log scale on the y-axis. The blue lines represent the seasonal effect, with the 95% prediction interval. The red lines illustrate the trend over time, with a 95% prediction interval shown by the red dotted lines. The data suggest a seasonal fluctuation in motorcycle deaths, along with a clear trend over time, as modeled by a generalized additive model (GAM)"}
+
+# plot the actual data points
+plot(x$date, 
+     x$killed,
+     col='darkgray', 
+     log='y',
+     xlab='', 
+     ylab='Motorcycle deaths',
+     cex=0.4
+     )
+
+# plot seasonal effect
+matlines(x$date,
+         exp(do.call(cbind, predict(motorcycleGAM, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty=c(1,2,2), col='#377eb8'
+
+)
+
+# plot the trend over time
+newX = x
+newX$month = 'Mar'
+newX$logMonthDays = log(31)
+
+# use linear function for the straight line
+matlines(newX$date,
+         exp(do.call(cbind, predict(motorcycleGAM, newX,
+                                    se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty = c(1, 2, 2),
+         col='red3',
+         lwd = c(1.5, 1, 1),
+         alpha=0.5
+         )
+```
+
+# Question 2: Heat
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# download the data
+heatUrl = "http://pbrown.ca/teaching/appliedstats/data/sableIsland.rds"
+dir.create("cache", showWarnings = FALSE)
+heatFile = file.path("cache", basename(heatUrl))
+
+if (!file.exists(heatFile)) 
+  download.file(heatUrl, heatFile)
+
+x = readRDS(heatFile)
+names(x) = gsub("[.]+C[.]", "", names(x))
+x$Date = as.Date(x$Date)
+x$month = as.numeric(format(x$Date, "%m"))
+x$summer = x$month %in% 5:10
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+x[100, ]
+x$dateInt = as.integer(x$Date)
+x$yearFac = factor(format(x$Date, "%Y"))
+
+xSub = x[x$summer & !is.na(x$Max.Temp), ]
+
+# View(xSub)
+# View(x)
+
+library("mgcv")
+
+# Model 1 (res1)
+res1 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Model 2 (res2)
+res2 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 4) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Model 3 (res3)
+res3 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+```
+
+The formulas for `res1` , `res2`, `res3` :
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+res1$formula
+res2$formula
+res3$formula
+```
+
+### Part 1
+
+Equations for `res1`
+
+$$
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \\
+ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$ where:
+
+-   $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
+
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine terms of the 6-month cycle
+
+-   $f_1$ is the smooth trend over time (dateInt), modeled using a spline with k=100 knots
+
+-   $f_2$ is the year random effect which accounts for variability between years. The use of `bs = "re"` in the code tells `mgcv::gam` to treat it as a random effect, and not a smoothing term.
+
+Equations for `res2`$$
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) 
+$$
+
+$$
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) 
++ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$
+
+where:
+
+-   $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
+
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine terms of the 6-month cycle
+
+```         
+-    $f_1$ is the smooth trend over time (dateInt), modeled using a
+    spline with k=4 knots. The number of knots, k is the key
+    difference between `res1` and `res2`
+```
+
+-   $f_2$ is the year random effect which accounts for variability between years. The use of `bs = "re"` in the code tells `mgcv::gam` to treat it as a random effect, and not a smoothing term.
+
+Equations for `res3` $$
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) 
+$$
+
+$$
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f(\text{dateInt}_i) 
+$$
+
+where:
+
+-   $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine terms of the 12-month cycle
+
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine terms of the 6-month cycle
+
+-   $f$ is the smooth trend over time (dateInt), modeled using a spline with k=100 knots.
+
+##### Differences between the three models
+
+The models defined in `res1`, `res2`, and `res3` have a couple of key differences. Firstly, the models in `res1` and `res2` have one key difference: the number of knots, $k$. The `res1` model uses $k=100$ knots which allows for a more detailed and flexible smoothing function, whereas the `res2` model uses $k=4$ knots which allows for a "smoother", less detailed smoothing function. Larger $k$ is generally better because it fits the data better; the model in `res2` with $k=4$ probably has too few knots to fit the data well or capture details. The model in `res3` has $k=100$ knots just like the model in `res1`, but it omits the `yearFac` random effect and only includes a smooth term for `dateInt`. The `res3` model is the simplest but it does not capture unobserved temperature variability between years.
+
+### Part 2
+
+### Part 3
+
+### Part 4
