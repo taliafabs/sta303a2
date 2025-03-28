@@ -189,16 +189,17 @@ Syear = as.numeric(as.character(Syear))
 
 View(xSub)
 
+View(predYear)
+
 baseline_temp <- xSub[xSub$Date == as.Date("1990/7/1"), "Max.Temp"]
 
 ```
 
 # Plotting
-```{r, fig.cap="The first plot shows the prediction intervals for the random effect of the year on maximum temperature, illustrating the predicted unexplained variation by year. The baseline year is 1990, so positive predicted year factor values indicate that maximum temperatures are expected to be higher in those specific years. Conversely, values below zero indicate that maximum temperatures are expected to be lower than the baseline year (1990).The second plot presents several simulated trends of the smoothing effect based on the seasonal variations in temperature, showing how the maximum temperature has increased over time. The trend in the second plot shows there has been more extreme max temperatures over the past 20 years."}
+```{r, fig.cap="The first plot shows the prediction intervals for the random effect of the year on maximum temperature, illustrating the predicted unexplained variation by year. The baseline year is 1990, so positive predicted year factor values indicate that maximum temperatures are expected to be higher in those specific years. Conversely, values below zero indicate that maximum temperatures are expected to be lower than the baseline year (1990).The second plot presents several simulated trends of the smoothing effect based on the seasonal variations in max temperature. The plot shows how the maximum temperature has increased over time. The trend in the second plot shows there has been more extreme max temperatures over the past 20 years."}
 
-View(xsub)
 ## Plotting
-par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))
+
 
 # First plot: Predicted random effect
 matplot(Syear, predYear, 
@@ -211,18 +212,20 @@ segments(Syear, predYear[, 2], Syear, predYear[, 3], lwd = 0.5)
 mtext("a) ", side = 1, line = 4, at = mean(Syear), cex = 0.8)
 
 # Second plot: Simulated temperature trends
-matplot(newdat$Date, simulated_temperatures, 
+matplot(newdat$Date, simTrend, 
         type = "l", 
         lty = 1, 
-        col = RColorBrewer::brewer.pal(ncol(simulated_temperatures), "Paired"), 
+        col = RColorBrewer::brewer.pal(ncol(simTrend), "Paired"), 
         xaxt = "n", 
         xaxs = "i", 
         yaxs = "i", 
-        ylim = range(simulated_temperatures),
-        ylab = "", 
-        xlab = "Year")
+        ylim = range(predTrend),
+        ylab = "Simulated Max Temperature Trend (ºC)", 
+        xlab = "Year",
+        cex.lab = 0.8)
 
-matlines(newdat$Date, predTrend + baseline_temp, 
+
+matlines(newdat$Date, predTrend, 
          lty = c(1, 2, 2), 
          col = "black", 
          lwd = 2)
