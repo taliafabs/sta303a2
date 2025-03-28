@@ -1,0 +1,331 @@
+---
+title: "sta303 a2 q2"
+author: "Talia Fabregas"
+date: "2025-03-28"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Provided code
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# download the data
+heatUrl = "http://pbrown.ca/teaching/appliedstats/data/sableIsland.rds"
+dir.create("cache", showWarnings = FALSE)
+heatFile = file.path("cache", basename(heatUrl))
+
+if (!file.exists(heatFile)) 
+  download.file(heatUrl, heatFile)
+
+x = readRDS(heatFile)
+names(x) = gsub("[.]+C[.]", "", names(x))
+x$Date = as.Date(x$Date)
+x$month = as.numeric(format(x$Date, "%m"))
+x$summer = x$month %in% 5:10
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+x[100, ]
+x$dateInt = as.integer(x$Date)
+x$yearFac = factor(format(x$Date, "%Y"))
+
+xSub = x[x$summer & !is.na(x$Max.Temp), ]
+
+# View(xSub)
+# View(x)
+
+library("mgcv")
+
+# Model 1 (res1)
+res1 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Model 2 (res2)
+res2 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 4) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Model 3 (res3)
+res3 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Output the formula of res1
+res1$formula
+res2$formula
+res3$formula
+```
+
+# Part 1
+
+Equations for `res1`
+
+$$
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \\
+ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$ where:
+
+-   $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+    terms of the 12-month cycle
+
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+    terms of the 6-month cycle
+
+-   $f_1$ is the smooth trend over time (dateInt), modeled using a
+    spline with k=100 knots
+
+-   $f_2$ is the year random effect which accounts for variability
+    between years. The use of `bs = "re"` in the code tells `mgcv::gam`
+    to treat it as a random effect, and not a smoothing term.
+
+Equations for `res2`$$
+Y_i \sim \mathcal{N}(\mu_i, 0) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) \\
++ f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$ where:
+
+-   $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+    terms of the 12-month cycle
+
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+    terms of the 6-month cycle
+
+```         
+-    $f_1$ is the smooth trend over time (dateInt), modeled using a
+    spline with k=4 knots. The number of knots, k is the key
+    difference between `res1` and `res2`
+```
+
+-   $f_2$ is the year random effect which accounts for variability
+    between years. The use of `bs = "re"` in the code tells `mgcv::gam`
+    to treat it as a random effect, and not a smoothing term.
+
+Equations for `res3` $$
+Y_i \sim \mathcal{N}(\mu_i, 0) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f(\text{dateInt}_i) 
+$$ where:
+
+-   $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+    terms of the 12-month cycle
+
+-   $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+    terms of the 6-month cycle
+
+-   $f$ is the smooth trend over time (dateInt), modeled using a spline
+    with k=100 knots.
+
+Differences between the models in `res1`, `res2`, and `res3`:
+
+# Part 2
+
+# Part 3
+
+# Part 4
+
+Re-fitting the model using only data from 1995 and earlier
+
+Comparable to the covid excess ontario deaths shown in lecture — what
+would things have looked like if trends up to 1995 continued???
+
+looking at excess warming, analogous to excess mortality???
+
+```{r}
+# filter data to only include before 1996
+data_1995 <- subset(x, dateInt <= as.integer(as.Date("1995-12-31")))
+```
+
+```{r}
+# refit the model
+tempGAM1996 = gam(
+  update.formula(
+    Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990-07-01")), k = 100) + 
+      s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")), 
+  data = data_1995
+  )
+```
+
+```{r}
+# Create a new dataset for forecasting
+
+# dates to forecast based on pre-1996 data
+forecast_dates <- seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "day")
+
+# create the forecast dataframe
+forecast_data <- data.frame(
+  date = forecast_dates,
+  dateInt = as.integer(forecast_dates),
+  yearFac = factor(format(forecast_dates, "%Y"))
+)
+
+# Predict
+# dont think i need this line
+# forecast_data$forecast <- predict(tempGAM1996, newdata = forecast_data)
+```
+
+```{r}
+# forecast temperatures based on pre-1996 data
+# what would have happened without 1996 global warming
+forecast2025 = do.call(cbind,
+                       predict(tempGAM1996, forecast_data, se.fit=TRUE)
+                       ) %*% Pmisc::ciMat()
+
+forecast_data$forecast <- forecast2025[, 1]  # Mean forecast
+forecast_data$lower <- forecast2025[, 2]     # Lower 95% 
+forecast_data$upper <- forecast2025[, 3]     # Upper 95% 
+```
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE}
+# Convert dateInt to Date format
+dates <- as.Date(comparison$dateInt, origin = "1970-01-01")
+
+# Plot actual data first
+plot(dates, comparison$Max.Temp, col = "gray", pch = 16, cex = 0.4,
+     xlab = "Date", ylab = "Max Temperature (°C)",
+     main = "Forecasted vs Actual Max Temperatures (1996-2025)")
+
+# Add forecast trend line
+lines(dates, comparison$forecast, col = "magenta4", lwd = 1.5)
+
+# Add 95% prediction intervals
+lines(dates, comparison$lower, col = "magenta4", lwd = 1, lty = 2)  # Lower bound
+lines(dates, comparison$upper, col = "magenta4", lwd = 1, lty = 2)  # Upper bound
+
+polygon(c(dates, rev(dates)), 
+        c(comparison$lower, rev(comparison$upper)), 
+        col = rgb(0.7, 0.7, 0.7, 0.3), border = NA)
+
+# Add legend
+legend("topright", legend = c("Actual", "Forecast", "95% Prediction Interval"),
+       col = c("gray", "magenta4", "green"),
+       pch = c(16, NA, NA), lty = c(NA, 1, 2), lwd = c(NA, 2, 1), bty = "n")
+```
+
+```{r}
+library(ggplot2)
+
+# Merge forecast with actual data
+actual_data <- subset(x, dateInt >= as.integer(as.Date("1996-01-01"))) # get the actual data
+comparison <- merge(forecast_data, actual_data, by = "dateInt", all.x = TRUE)
+
+ggplot(comparison, aes(x = as.Date(dateInt, origin = "1970-01-01"))) +
+  geom_line(aes(y = forecast, color = "Forecast"), size = 1) +          # Forecast trend line
+  geom_point(aes(y = Max.Temp, color = "Actual"), size = 1.5, alpha = 0.5) +  # Actual data points
+  labs(title = "Forecast Trend Line with Actual Data Points",
+       x = "Date", y = "Temperature (°C)") +
+  scale_color_manual(values = c("Forecast" = "purple4", "Actual" = "lightblue3")) +
+  theme_minimal()
+```
+
+```{r}
+# Prepare the data
+comparison <- merge(forecast_data, actual_data, by = "dateInt", all.x = TRUE)
+
+# Convert dateInt to Date format
+dates <- as.Date(comparison$dateInt, origin = "1970-01-01")
+
+# Plot the forecast trend line
+matplot(dates, comparison$forecast, type = "l", col = "magenta4", lwd = 2, lty = 1,
+        xlab = "Date", ylab = "Max Temperature (°C)",
+        main = "Forecast Trend Line with Actual Data Points")
+
+# Add actual data points
+points(dates, comparison$Max.Temp, col = "lightblue3", pch = 16, cex = 0.7)
+
+# Add legend
+legend("topright", legend = c("Forecast", "Actual"), 
+       col = c("magenta4", "lightblue3"), lty = 1, pch = c(NA, 16), bty = "n")
+```
+```{r}
+# Prepare the data
+comparison <- merge(forecast_data, actual_data, by = "dateInt", all.x = TRUE)
+
+# Convert dateInt to Date format
+dates <- as.Date(comparison$dateInt, origin = "1970-01-01")
+
+# Plot the actual data first
+plot(dates, comparison$Max.Temp, col = "lightblue3", pch = 16, cex = 0.7,
+     xlab = "Date", ylab = "Max Temperature (°C)",
+     main = "Forecast Trend Line on Top of Actual Data")
+
+# Overlay the forecast trend line
+lines(dates, comparison$forecast, col = "magenta4", lwd = 2)
+
+# Add legend
+legend("topright", legend = c("Actual", "Forecast"),
+       col = c("lightblue3", "magenta4"), pch = c(16, NA), lty = c(NA, 1), lwd = 2, bty = "n")
+
+```
+
+
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# fit model up to December 31 1995
+# next step is to forecast
+# tempGAM1996 = gam(res1$formula,
+#                   method='ML',
+#                   data= x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ],
+#                   optimizer='efs'
+#                   ) 
+
+x4 = x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
+
+tempGAM1996 = gam(update.formula(
+      Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+      s(yearFac, bs = "re"), 
+      Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+    ),
+    data=x4,
+    method='ML',
+    optimizer='efs'
+)
+```
+
+```{r}
+# forecast
+jan_1_1996 = as.Date('1996/1/1')
+jan_1_2025 = as.Date('2025/1/1')
+X_forecast = data.frame(
+  date = seq(jan_1_1996, jan_1_2025, by='month'),
+  month='Mar')
+X_forecast$dateInt = as.integer(X_forecast$date)
+
+pred4 = do.call(
+  cbind,
+  predict(tempGAM1996, X_forecast, se.fit=TRUE)
+  ) %*% Pmisc::ciMat()
+```
+
+```{r}
+# compare model forecast to observed data
+matplot(X_forecast$date, pred4,
+        lty=c(1,2,2),
+        col='red',
+        xlim = c(jan_1_1996, jan_1_2025),
+        xlab='',
+        ylab = 'temperature'
+        )
+
+# plot the actual data points
+points(xSub$Date, xSub$Max.Temp, cex=0.3)
+
+# plot the trend?????
+abline(v=max(tempGam1996$model$dateInt)) 
+```
