@@ -202,9 +202,13 @@ Equations for `res1`
 
 $$
 Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
-\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \\
- f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
-$$ where:
+$$
+
+$$
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$
+
+where:
 
 -   $Y_i$ is the Max Temp recorded in month $i$
 
@@ -268,3 +272,51 @@ The models defined in `res1`, `res2`, and `res3` have a couple of key difference
 ### Part 3
 
 ### Part 4
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# filter data to only include before 1996
+data_1995 <- subset(x, dateInt <= as.integer(as.Date("1995-12-31")))
+
+# fit model on pre 1996 data
+tempGam1996 = gam(
+  update.formula(
+    Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990-07-01")), k = 100) + 
+      s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")), 
+  data = data_1995
+  )
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# dates to forecast based on pre-1996 data
+forecast_dates <- seq(as.Date("1996-01-01"), as.Date("2025-12-31"), by = "day")
+
+# create the forecast dataframe
+forecast_data <- data.frame(
+  dates = forecast_dates,
+  dateInt = as.integer(forecast_dates),
+  yearFac = factor(format(forecast_dates, "%Y"))
+)
+
+# forecast temperatures based on pre-1996 data
+# what would have happened without 1996 global warming
+forecast2025 = do.call(cbind,
+                       predict(tempGam1996, forecast_data, se.fit=TRUE)
+                       ) %*% Pmisc::ciMat()
+
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE}
+# plot actual data
+plot(dates, comparison$Max.Temp, col = "gray", pch = 16, cex = 0.4,
+     xlab = "Date", ylab = "Max Temperature (°C)",
+     main = "Forecasted vs Actual Max Temperatures (1996-2025)")
+
+# plot forecasted trend 
+lines(dates, comparison$forecast, col = "magenta4", lwd = 1.5)
+
+# add the 95% prediction intervals
+lines(dates, comparison$lower, col = "magenta4", lwd = 1, lty = 2)  # Lower bound
+lines(dates, comparison$upper, col = "magenta4", lwd = 1, lty = 2)  # Upper bound
+```
