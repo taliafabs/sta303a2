@@ -1,0 +1,157 @@
+---
+title: "sta303 a2 q2"
+author: "Talia Fabregas"
+date: "2025-03-28"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Provided code
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# download the data
+heatUrl = "http://pbrown.ca/teaching/appliedstats/data/sableIsland.rds"
+dir.create("cache", showWarnings = FALSE)
+heatFile = file.path("cache", basename(heatUrl))
+
+if (!file.exists(heatFile)) 
+  download.file(heatUrl, heatFile)
+
+x = readRDS(heatFile)
+names(x) = gsub("[.]+C[.]", "", names(x))
+x$Date = as.Date(x$Date)
+x$month = as.numeric(format(x$Date, "%m"))
+x$summer = x$month %in% 5:10
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+x[100, ]
+x$dateInt = as.integer(x$Date)
+x$yearFac = factor(format(x$Date, "%Y"))
+
+xSub = x[x$summer & !is.na(x$Max.Temp), ]
+
+# View(xSub)
+# View(x)
+
+library("mgcv")
+
+# Model 1 (res1)
+res1 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Model 2 (res2)
+res2 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 4) + 
+  s(yearFac, bs = "re"), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Model 3 (res3)
+res3 = gam(update.formula(
+  Max.Temp ~ s(dateInt, pc = as.integer(as.Date("1990/7/1")), k = 100), 
+  Pmisc::seasonalFormula(period = 365.25, harmonics = 1:2, var = "dateInt")
+), data = xSub, method = "ML", optimizer = "efs")
+
+# Output the formula of res1
+res1$formula
+res2$formula
+res3$formula
+```
+
+# Part 1
+
+Equations for `res1`
+
+$$
+Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$ where:
+
+-    $Y_i$ is the Max Temp recorded in month $i$
+
+-    $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+    terms of the 12-month cycle
+
+-    $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+    terms of the 6-month cycle
+
+-    $f_1$ is the smooth trend over time (dateInt), modeled using a
+    spline with k=100 knots
+
+-    $f_2$ is the year random effect which accounts for variability
+    between years. The use of `bs = "re"` in the code tells `mgcv::gam`
+    to treat it as a random effect, and not a smoothing term.
+
+Equations for `res2`$$
+Y_i \sim \mathcal{N}(\mu_i, 0) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f_1(\text{dateInt}_i) + f_2(\text{yearFac}_i)
+$$ where:
+
+-    $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+    terms of the 12-month cycle
+
+-    $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+    terms of the 6-month cycle
+
+    -    $f_1$ is the smooth trend over time (dateInt), modeled using a
+        spline with k=4 knots. The number of knots, k is the key
+        difference between `res1` and `res2`
+
+-    $f_2$ is the year random effect which accounts for variability
+    between years. The use of `bs = "re"` in the code tells `mgcv::gam`
+    to treat it as a random effect, and not a smoothing term.
+
+Equations for `res3` $$
+Y_i \sim \mathcal{N}(\mu_i, 0) \\
+\mu_i = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi \text{dateInt}_i}{182.625} \right) + f(\text{dateInt}_i) 
+$$ where:
+
+-    $Y_i$ is the Max Temp recorded in month $i$
+
+-   $\beta_1$, $\beta_2$ are the coefficients of the cosine and sine
+    terms of the 12-month cycle
+
+-    $\beta_3$ and $\beta_4$ are the coefficients of the cosine and sine
+    terms of the 6-month cycle
+
+-    $f$ is the smooth trend over time (dateInt), modeled using a spline
+    with k=100 knots.
+
+# Part 2
+
+# Part 3
+
+# Part 4
+
+Re-fitting the model using only data from 1995 and earlier
+
+Comparable to the covid excess ontario deaths shown in lecture — what
+would things have looked like if trends up to 1995 continued???
+
+looking at excess warming, analogous to excess mortality
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# fit model up to December 31 1995
+tempGAM1996 = gam(res1$formula,
+                  method='ML',
+                  data= x[x$Date <= as.Date("1995-12-31") & !is.na(x$Max.Temp), ]
+                  ) 
+```
+
+```{r}
+jan_1_1996 = as.Date('1996/1/1')
+jan_1_2025 = as.Date('2025/1/1')
+X_forecast = data.frame(
+  date = seq(jan_1_1996, jan_1_2025, by='month'),
+  month='Mar')
+X_forecast$dateInt = as.integer(X_forecast$date)
+```

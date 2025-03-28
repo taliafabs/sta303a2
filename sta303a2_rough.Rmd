@@ -80,13 +80,13 @@ $$ where:
 
 -   $s(t)$ is a seasonal cycle, and the annual cycles look sinusoidal
 
-    -    $s(t) = \rho cos(2\pi t/365/25 + \phi)$ where $\rho$ is the amplitude, $\phi$ is the phase, and $1/365.25$ is the frequency.
+    -   $s(t) = \rho cos(2\pi t/365/25 + \phi)$ where $\rho$ is the amplitude, $\phi$ is the phase, and $1/365.25$ is the frequency.
 
     -   uses a 12 and 7 month frequency. two rho's and phi's (one for 6 month
 
     -   s(xi; gamma) where s is the seasonal effect and gamma is the coefficients on the sins and cosines for the 12 and 6 month cycle.
 
--    $f(t)$ is a smooth trend on `dateInt`
+-   $f(t)$ is a smooth trend on `dateInt`
 
 $$
 log(\mu_i) = \beta_0 + f(\text{dateInt}) + \gamma \cdot \text{logMonthDays} + 
@@ -102,7 +102,9 @@ We use a Negative Binomial model because the response variable, $Y_i$, the numbe
 
 <!-- We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable. -->
 
-<!-- Covariate Xi is month --> <!-- Beta is the fixed effect of month -->
+<!-- Covariate Xi is month -->
+
+<!-- Beta is the fixed effect of month -->
 
 $$
     Y_i | U  \sim Pois(D_i \lambda_i) \\
@@ -220,7 +222,7 @@ matlines(newX$date,
 
 # Q2: Heat
 
-#### 1.  Write down a set of equations
+#### 1. Write down a set of equations
 
 `res1`:
 
