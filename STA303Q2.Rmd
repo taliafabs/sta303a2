@@ -1,3 +1,9 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
 ```{r pmisc}
 if (!requireNamespace("Pmisc", quietly = TRUE)) {
   install.packages("Pmisc", repos = "http://r-forge.r-project.org")
@@ -7,6 +13,7 @@ library(Pmisc)
 ```
 
 Importing the Data:
+
 ```{r}
 heatUrl = "http://pbrown.ca/teaching/appliedstats/data/sableIsland.rds"
 dir.create("cache", showWarnings = FALSE)
@@ -23,6 +30,7 @@ x$summer = x$month %in% 5:10
 ```
 
 Code for 3 GAM:
+
 ```{r}
 x[100, ]
 x$dateInt = as.integer(x$Date)
@@ -63,70 +71,93 @@ summary(res1)
 
 ```
 
-Q1: 
-#Write down a set of equations (or several sets of equations) which corresponds to the three calls to gam.
-#Explain the differences between the models in res1, res2 and res3? (2 points)
+Q1: #Write down a set of equations (or several sets of equations) which
+corresponds to the three calls to gam. #Explain the differences between
+the models in res1, res2 and res3? (2 points)
 
-##Discussion: 
-res 1 and res 3 have a k value equal to 100, this is a component of the smooth term. Due to the k value being greater
-in these 2 models, compared to res 2 having a k value of 4 in the smooth term, res1 and res3 will be able to capture more
-of the data, allowing more flexibility in the smooth function. For res 2 with a k value of 4 the smooth term will have a more generalized shape, not accounting for detailed variability in the data.
+##Discussion: res 1 and res 3 have a k value equal to 100, this is a
+component of the smooth term. Due to the k value being greater in these
+2 models, compared to res 2 having a k value of 4 in the smooth term,
+res1 and res3 will be able to capture more of the data, allowing more
+flexibility in the smooth function. For res 2 with a k value of 4 the
+smooth term will have a more generalized shape, not accounting for
+detailed variability in the data.
 
-Another key difference is that Res3 does not include yearFac as a random effect, whereas Res1 and Res2 both treat yearFac as a random effect. This means that in Res3, the model assumes that the intercept for Max.Temp is the same for all years. However, this assumption is likely not accurate, as temperatures can vary significantly from year to year, especially over long periods. By including yearFac as a random effect, Res1 and Res2 allow for different intercepts for each year, better capturing year-to-year variations in the data.
+Another key difference is that Res3 does not include yearFac as a random
+effect, whereas Res1 and Res2 both treat yearFac as a random effect.
+This means that in Res3, the model assumes that the intercept for
+Max.Temp is the same for all years. However, this assumption is likely
+not accurate, as temperatures can vary significantly from year to year,
+especially over long periods. By including yearFac as a random effect,
+Res1 and Res2 allow for different intercepts for each year, better
+capturing year-to-year variations in the data.
 
-Set of Equations for the models
-$$
-Res1:\\ 
-Y_i \sim \mathcal{N}(\mu_i, \sigma^2)\\
+Set of Equations for the models 
+$$ 
+Res1:\\ Y_i
+\sim \mathcal{N}(\mu\_i, \sigma\^2)\\
 
-\mu_i = f_1(\text{dateInt}) + f_2(\text{yearFac}) + f_3(\text{seasonal1}) + f_4(\text{seasonal2})\\
-Where:\\
-f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 100) \\
-f_2(\text{yearFac}) = s(\text{yearFac}, \text{bs} = "re") \\
-s_1(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
-s_2(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
+\mu\_i = f_1(\text{dateInt}) + f_2(\text{yearFac}) +
+f_3(\text{seasonal1}) + f_4(\text{seasonal2})\\ Where:\\
+f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} =
+\text{as.integer(as.Date("1990/7/1"))}, k = 100) \\ f_2(\text{yearFac})
+= s(\text{yearFac}, \text{bs} = "re") \\ s_1(\text{seasonal1}) =
+\sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) +
+\cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+s_2(\text{seasonal2}) =
+\sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) +
+\cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
 $$
-$$
-\text{Res2:} \\
-Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
-\mu_i = f_1(\text{dateInt}) + f_2(\text{yearFac}) + f_3(\text{seasonal1}) + f_4(\text{seasonal2}) \\
-\text{Where:} \\
-f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 4) \\
-f_2(\text{yearFac}) = s(\text{yearFac}, \text{bs} = "re") \\
-f_3(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
-f_4(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
-$$
-$$
-\text{Res3:} \\
-Y_i \sim \mathcal{N}(\mu_i, \sigma^2) \\
-\mu_i = f_1(\text{dateInt}) + f_2(\text{seasonal1}) + f_3(\text{seasonal2}) \\
-\text{Where:} \\
-f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k = 100) \\
-f_2(\text{seasonal1}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
-f_3(\text{seasonal2}) = \sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) + \cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right)
-$$
-##Q2: 
 
-Maxine Burningier, leader of the People’s Party of Canada, sees fig. 3 c and proclaims in a post on
-Truth Social that “There is no clear evidence of global temperature increase! Model 3 is the best model
-and it shows these data are only noise!’ ’ Write a short (3 or 4 sentence) letter to the editor of your
-local tabloid newspaper either providing scientific justification for the Esteemed Leader’s statement or
-explaining clearly why you disagree.
+$$ 
+\text{Res2:} \\ Y_i \sim \mathcal{N}(\mu\_i, \sigma\^2) \\ \mu\_i =
+f_1(\text{dateInt}) + f_2(\text{yearFac}) + f_3(\text{seasonal1}) +
+f_4(\text{seasonal2}) \\ \text{Where:} \\ f_1(\text{dateInt}) =
+s(\text{dateInt}, \text{pc} = \text{as.integer(as.Date("1990/7/1"))}, k
+= 4) \\ f_2(\text{yearFac}) = s(\text{yearFac}, \text{bs} = "re") \\
+f_3(\text{seasonal1}) =
+\sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) +
+\cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+f_4(\text{seasonal2}) =
+\sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) +
+\cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) 
+$$
 
-```{r}
-```
+$$ 
+\text{Res3:} \\ Y_i \sim \mathcal{N}(\mu\_i, \sigma\^2) \\ \mu\_i =
+f_1(\text{dateInt}) + f_2(\text{seasonal1}) + f_3(\text{seasonal2}) \\
+\text{Where:} \\ f_1(\text{dateInt}) = s(\text{dateInt}, \text{pc} =
+\text{as.integer(as.Date("1990/7/1"))}, k = 100) \\
+f_2(\text{seasonal1}) =
+\sin\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) +
+\cos\left(\frac{\pi \cdot \text{dateInt}}{182.625}\right) \\
+f_3(\text{seasonal2}) =
+\sin\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) +
+\cos\left(\frac{\pi \cdot \text{dateInt}}{91.3125}\right) 
+$$
+
+##Q2:
+Maxine Burningier, leader of the People's Party of Canada, sees fig. 3 c
+and proclaims in a post on Truth Social that "There is no clear evidence
+of global temperature increase! Model 3 is the best model and it shows
+these data are only noise!' ' Write a short (3 or 4 sentence) letter to
+the editor of your local tabloid newspaper either providing scientific
+justification for the Esteemed Leader's statement or explaining clearly
+why you disagree.
+
+# Response
+The claim that there is no clear evidence of global temperature increase overlooks the data showing a clear increasing trend in maximum temperature, especially in recent years, as shown by Models 1 and 2, which account for the random effect of year on maximum temperature variations. Model 3 is not the best model, as it does not include the random effect of year, which fails to account for the possibility that some years may have consistently higher or lower maximum temperatures than others, potentially missing important conclusions. Concluding that maximum temperatures have increased over time should not be discredited simply because some years have experienced lower maximum temperatures than others. The frequency of high maximum temperatures in recent years clearly captures the increase in temperature when accounting for year-to-year variation as a random effect.
 
 ##Q3: 
-Create a nicer version of fig. 4, with axis labels and an informative caption. You can refer to variables
-given in the equations from Question 1. The caption should be two or three sentences, a reader familiar
-with generalized additive models should understand everything about the figure (even if they have not
-read this homework assignment) (3 points)
-
-Figure Caption:
-The first plot shows the prediction intervals for the random effect of year on maximum temperature,
-showing the predicted unexplained variation by year. The second plot presents several simulated trends of the smoothing effect 
+Create a nicer version of fig. 4, with axis labels and an
+informative caption. You can refer to variables given in the equations
+from Question 1. The caption should be two or three sentences, a reader
+familiar with generalized additive models should understand everything
+about the figure (even if they have not read this homework assignment)
+(3 points)
 
 ```{r}
+View(xSub)
 Syear = unique(xSub$yearFac)
 
 predYear = do.call(cbind, predict(res1, 
@@ -156,34 +187,50 @@ simTrend = tcrossprod(newX[, isTrend], simCoef[, isTrend])
 
 Syear = as.numeric(as.character(Syear))
 
+View(xSub)
+
+baseline_temp <- xSub[xSub$Date == as.Date("1990/7/1"), "Max.Temp"]
+
+```
+
+# Plotting
+```{r, fig.cap="The first plot shows the prediction intervals for the random effect of the year on maximum temperature, illustrating the predicted unexplained variation by year. The baseline year is 1990, so positive predicted year factor values indicate that maximum temperatures are expected to be higher in those specific years. Conversely, values below zero indicate that maximum temperatures are expected to be lower than the baseline year (1990).The second plot presents several simulated trends of the smoothing effect based on the seasonal variations in temperature, showing how the maximum temperature has increased over time. The trend in the second plot shows there has been more extreme max temperatures over the past 20 years."}
+
+View(xsub)
+## Plotting
+par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))
+
+# First plot: Predicted random effect
 matplot(Syear, predYear, 
-        xlab = "Year",
-        ylab = "Predicted random effect",
-        cex = c(1, 0, 0), 
-        pch = 16,
-        col = "black")
-
+        xlab = "Year", 
+        ylab = "Year Effect on Max Temperature", 
+        pch = 16, 
+        col = "black",
+        cex.lab = 0.8)
 segments(Syear, predYear[, 2], Syear, predYear[, 3], lwd = 0.5)
+mtext("a) ", side = 1, line = 4, at = mean(Syear), cex = 0.8)
 
-matplot(newdat$Date, simTrend, 
+# Second plot: Simulated temperature trends
+matplot(newdat$Date, simulated_temperatures, 
         type = "l", 
         lty = 1, 
-        col = RColorBrewer::brewer.pal(ncol(simTrend), "Paired"), 
+        col = RColorBrewer::brewer.pal(ncol(simulated_temperatures), "Paired"), 
         xaxt = "n", 
         xaxs = "i", 
         yaxs = "i", 
-        ylim = range(predTrend),
+        ylim = range(simulated_temperatures),
+        ylab = "", 
         xlab = "Year")
 
-matlines(newdat$Date, predTrend,
+matlines(newdat$Date, predTrend + baseline_temp, 
          lty = c(1, 2, 2), 
          col = "black", 
          lwd = 2)
 
+# Custom x-axis
 forX = as.Date(ISOdate(seq(1880, 2050, by = 25), 1, 1))
-
 axis(1, forX, format(forX, "%Y"))
-
+mtext("b) ", side = 1, line = 4, at = mean(newdat$Date), cex = 0.8)
 ```
 
 ##Q4
