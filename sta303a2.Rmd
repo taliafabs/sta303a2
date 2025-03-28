@@ -54,10 +54,45 @@ matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-head(x)
+x
 ```
 
-#### 1. Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
+#### Part 1
+
+#### Write down, in equations not R code, a generalized additive model suitable for this problem. Explain each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma distributed because the number of deaths must be positive”). (4 points)
+
+$$
+Y_i \sim \text{NegBinom}(D_i \lambda(t_i), \tau) \\
+\text{log}[\lambda(t)] = X_i \beta + s(t; \rho, \phi) + f(t; \sigma) \\
+$$ where:
+
+-   $Y_i$ is the motorcycle accident death count for month $i$
+
+-   $D_i$ is the number of days in month $i$ $\tau$ is the over-dispersion parameter
+
+-   $\lambda$ is the rate/intensity of motorcycle deaths
+
+-   $t_i$ is the time (month) of the observation
+
+-   $X_i$ has sin and cos for 12 and 6 month periods.
+
+-   $\beta$ is the covariate matrix for the fixed effects
+
+-   $s(t)$ is a seasonal cycle, and the annual cycles look sinusoidal
+
+    -    $s(t) = \rho cos(2\pi t/365/25 + \phi)$ where $\rho$ is the amplitude, $\phi$ is the phase, and $1/365.25$ is the frequency.
+
+    -   uses a 12 and 7 month frequency. two rho's and phi's (one for 6 month
+
+    -   s(xi; gamma) where s is the seasonal effect and gamma is the coefficients on the sins and cosines for the 12 and 6 month cycle.
+
+-    $f(t)$ is a smooth trend on `dateInt`
+
+$$
+log(\mu_i) = \beta_0 + f(\text{dateInt}) + \gamma \cdot \text{logMonthDays} + 
+$$
+
+We use a Negative Binomial model because the response variable, $Y_i$, the number of motorcycle deaths every month from 1980 to 2024, is a non-negative count variable, and the Negative Binomial offers more flexibility than the Poisson model because it can account for over-dispersion. The Poisson model does not consider over-dispersion, whereas the Negative Binomial model accounts for it, including when there is very low over-dispersion.
 
 <!-- Do we have to check for overdispersion or is this already telling us it is poission? -->
 
@@ -66,15 +101,16 @@ head(x)
 <!-- An appropriate generalized additive model -->
 
 <!-- We chose a poisson because the response variable, the number of motorcycle deaths in month i, is a count variable. -->
-Negbinom can adapt to very low overdispersion
-<!-- Covariate Xi is month -->
-<!-- Beta is the fixed effect of month -->
 
-  $$
+<!-- Covariate Xi is month --> <!-- Beta is the fixed effect of month -->
+
+$$
     Y_i | U  \sim Pois(D_i \lambda_i) \\
     \text{log}(\lambda_i) = X_i \beta + U(t_i) \\
     U(.) \sim IWP_2(\sigma)
   $$
+
+U is the seasonal s(ti)
 
 where:
 
@@ -90,28 +126,61 @@ where:
 
 -   $U(t_i)$ = smooth term, second-order Integrated Wiener Process (IWP)
 
-The response variable, $Y_i$, is Poisson because the number of motorcycle deaths is a non-negative count variable. $D_i$ is the number of deaths in month $i$ and $\lambda_i$ is the intensity. We will use $D_i$ as an offset because exposure time varies by the length of the month (i.e. February has 28 or 29 days and January has 31 days). The log link function ensures that the predicted counts are non-negative and creates a multiplicative relationship between the predictors and response. 
+The response variable, $Y_i$, is Poisson because the number of motorcycle deaths is a non-negative count variable. $D_i$ is the number of deaths in month $i$ and $\lambda_i$ is the intensity. We will use $D_i$ as an offset because exposure time varies by the length of the month (i.e. February has 28 or 29 days and January has 31 days). The log link function ensures that the predicted counts are non-negative and creates a multiplicative relationship between the predictors and response.
 
 Sesonal components like pi cos or sin should be written down -- explain how seasonal components are being structured. be more specific. define seasonal component be as specific as possible
 
-#### 2. Show R code to fit the model using the `mcgv` package
+do a negbinom XiB where Xi has sin, cos, 12, 6 months S(xi; phi, rho) where S is seasonal sins cosins with phase phi 12, 6 amplitude rho
+
+smooth function s(dateint) is an IWP \#### 2. Show R code to fit the model using the `mcgv` package
+
+do not use month as a fixed effect and the seasonal formula -- only have one observation per month.
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
-model1 <- mgcv::gam(update.formula(killed ~ s(dateInt, k=4) + month + offset(logMonthDays),
+model1 <- mgcv::gam(update.formula(killed ~ month + offset(logMonthDays) +  s(dateInt, k=100),
               Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
               data=x,
               family=nb(link=log),
               method = 'ML'
               )
 
-# model2 <- mgcv::gam(killed ~ s(dateInt, k=4) + month + offset(logMonthDays),
-#               data=x,
-#               family=poisson(link=log),
-#               method = 'ML'
-#               )
+# this one is right
+# dont use both month as a predictor and seasonal formula, it is redundant
+res1 <- mgcv::gam(update.formula(killed ~  s(dateInt, k=100) + offset(logMonthDays),
+              Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
+              data=x,
+              family=nb(link=log),
+              method = 'ML'
+              )
+
+res1a <- mgcv::gam(killed ~ month + offset(logMonthDays) + s(dateInt, k=100),
+                   data=x,
+                   family=nb,
+                   method='ML'
+                   )
+```
+
+```{r}
+res1$formula
+```
+
+```{r}
+model1$terms
 ```
 
 #### 3. Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as well as conveying the important statistical information (prediction intervals as well as point predictions). (4 points)
+
+```{r}
+# trend
+newdat = data.frame(date = seq(as.Date('1979-01-01'), as.Date('2023-12-01'),
+             by='month'))
+
+newdat$dateInt = as.integer(newdat$date)
+
+motorcycleDeathPred = do.call(cbind, predict(res1, newdat, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)
+
+matplot(newdat$date, motorcycleDeathPred)
+```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, include=TRUE, fig.cap="Motorcycle deaths have declined over time, since 1980."}
 # predicted trend
@@ -124,23 +193,26 @@ plot(x$date,
      cex=0.4
      )
 
-# seasonal
-matlines(x$date, 
-         exp(do.call(cbind, predict(model1, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
-         lty=c(1,2,2), col='#377eb8'
-         
-)
+# # seasonal
+# matlines(x$date, 
+#          exp(do.call(cbind, predict(res1, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+#          lty=c(1,2,2), col='#377eb8'
+#          
+# )
 
 # problem is here
 # # march
-newX = x; newX$month = 'Mar'
+newX = x
+# newX$month = 'Mar'
+newX$month <- factor('Mar', levels = levels(x$month))  # Ensure factor levels are the same
 newX$logMonthDays = log(31)
 
 matlines(newX$date,
-         exp(do.call(cbind, predict(model1, newX, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         exp(do.call(cbind, predict(res1, newX, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
          lty = c(1, 2, 2),
-         col='red3',
-         lwd = c(1.5, 1, 1)
+         col='coral3',
+         lwd = c(1.5, 1, 1), 
+         alpha=0.5
          )
 
 # prediction rate mu_i (red), seasonally adjusted trend (red) with 95% prediction intervals
@@ -148,7 +220,19 @@ matlines(newX$date,
 
 # Q2: Heat
 
-#### 1.
+#### 1.  Write down a set of equations
+
+`res1`:
+
+$$
+Y_i \sim \text{Normal}(\mu_i, \sigma^2)
+$$
+
+`res2`:
+
+`res3`:
+
+difference in the number of knots, $k$, can probably explain why `res2` is a lot smoother.
 
 #### 2.
 

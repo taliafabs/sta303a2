@@ -1,0 +1,168 @@
+---
+title: "STA303 Assignment 2Question 1"
+author: "Talia Fabregas"
+date: "2025-03-27"
+output: pdf_document
+---
+
+```{r pmisc, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+# if pmisc is more than a week old, fetch the latest 
+if(!requireNamespace("Pmisc", quietly=TRUE)) {
+	install.packages("Pmisc", repos='http://r-forge.r-project.org')
+}
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+library(Hmisc)
+library(Pmisc)
+# install.packages("mcgv")
+library(mgcv)
+library(kableExtra)
+library(janitor)
+```
+
+# Provided code
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+# retrieving the data
+theUrl = "http://pbrown.ca/teaching/appliedstats/data/motorcycle.rds"
+theFile = basename(theUrl)
+if (!file.exists(theFile)) download.file(theUrl, theFile)
+x = readRDS(theFile)
+
+# preparing the data
+x$dateInt = as.integer(x$date)
+x$logMonthDays = log(Hmisc::monthDays(x$date))
+x$month = factor(format(x$date, "%b"), levels = format(ISOdate(2000,
++   1:12, 1), "%b"))
+res = glm(killed ~ offset(logMonthDays) + dateInt + month, data = x, 
+          family = poisson(link = "log")
+          )
+newdata = data.frame(date = seq(as.Date("1975/1/1"), as.Date("2030/1/1"), by = "month"))
+newdata$dateInt = as.integer(newdata$date)
+newdata$logMonthDays = log(30)
+newdata$month = "Mar"
+pred1 = predict(res, newdata)
+newdata$month = format(newdata$date, "%b")
+pred2 = predict(res, newdata)
+plot(x$date, x$killed, cex = 0.2, log = "y", xlab = "", ylab = "")
+matlines(newdata$date, exp(cbind(pred1, pred2)), lty = 1)
+```
+
+# Part 1
+
+Write down, in equations not R code, a generalized additive model suitable for this problem. Explain
+each of the parts of the model and give a rationale for them (i.e. “The response variable is Gamma
+distributed because the number of deaths must be positive”). (4 points)
+
+A generalized additive model (GAM) suited for this problem is the Negative Binomial GAM. We chose a Negative Binomial because our response variable, $Y_i$ (number of motorcycle deaths in month $i$) is a non-negative count variable, and unlike a Poission, it can account for over-dispersion (flexible enough to account for high or very low over-dispersion).
+
+The GAM that we will use for this problem is as follows:
+
+$$
+Y_i \sim \text{NegBinom}(D_i \mu_i, \tau_i)\\
+\text{log}(\mu_i) = \beta_0 + \beta_1 \cdot \text{cos}\left(\frac{2\pi t_i}{365.25} \right) + \beta_2 \cdot \text{sin}\left(\frac{2\pi t_i}{365.25} \right) + \beta_3 \cdot \text{cos}\left(\frac{2\pi t_i}{182.625} \right) + \beta_4 \cdot \text{sin}\left(\frac{2\pi t_i}{182.625} \right) + f(t_i, \alpha)
+$$
+
+where:
+
+-   $Y_i$ is the number of motorcycle deaths in month $i$
+
+-   $\mu_i$ is the expected number of motorcycle deaths in month $i$
+
+-   $D_i$ is the number of days in month $i$. We use `logMonthDays` as an offset in our model to account for differences in exposure time.
+
+-   The $\beta_i$'s are the coefficients of the seasonal effects for 6 and 12 month intervals.
+
+-   $f$ is the smooth effect for date (smooth function over time).
+
+-   $\alpha$ is the smoothing coefficient.
+
+# Part 2				
+
+Show R code which fits this model using the mgcv package. (2 points)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+motorcycleGAM <- mgcv::gam(
+  update.formula(killed ~ offset(logMonthDays) +  s(dateInt, k=50),
+  Pmisc::seasonalFormula(period=365.25, harmonics=1:2, var='dateInt')),
+  data=x,
+  family=nb(link='log'),
+  method='ML'
+)
+
+# motorcycleGAM <- mgcv::gam(killed ~ month + offset(logMonthDays) + s(dateInt, k=50),
+#                    data=x,
+#                    family=nb,
+#                    method='ML'
+#                    )
+```
+
+# Part 3				
+
+Produce a figure similar to Figure fig. 1 which is able to visualize the trend estimated from the
+motorcycle data. You’re marked on the figure looking professional (with clear labels and a caption) as
+well as conveying the important statistical information (prediction intervals as well as point predictions).				
+
+(4 points)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+
+# plot the actual data points
+plot(x$date, 
+     x$killed,
+     col='darkgray', 
+     log='y',
+     xlab='', 
+     ylab='Motorcycle deaths',
+     cex=0.4
+     )
+
+# plot seasonal effect
+matlines(x$date,
+         exp(do.call(cbind, predict(motorcycleGAM, se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty=c(1,2,2), col='#377eb8'
+
+)
+
+# plot the wiggly line (trend over time)
+newX = x
+newX$month = 'Mar'
+# newX$month <- factor('Mar', levels = levels(x$month))  # Ensure factor levels are the same
+newX$logMonthDays = log(31)
+
+# use linear function for the straight line
+matlines(newX$date,
+         exp(do.call(cbind, predict(motorcycleGAM, newX,
+                                    exclude = attributes(res$terms)$term.labels[2:5],
+                                    se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+         lty = c(1, 2, 2),
+         col='coral3',
+         lwd = c(1.5, 1, 1),
+         alpha=0.5
+         )
+
+# matlines(newX$date,
+#          exp(do.call(cbind, predict(motorcycleGAM, newX, 
+#                                     se.fit=TRUE)) %*% Pmisc::ciMat(0.95)),
+#          lty = c(1, 2, 2),
+#          col='coral3',
+#          lwd = c(1.5, 1, 1),
+#          alpha=0.5
+#          )
+```
+
+				
+
+			
+
+		
+
+	
+
+# 
+			
+
+		
+
+	
